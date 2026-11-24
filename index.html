@@ -194,6 +194,77 @@ renderStudent = function (){
 };
 
 
+
+
+/* =====================================================================
+   v14: cleaner student cards + one-tap "Inactive" (moves to the bottom)
+   ===================================================================== */
+IC.pause = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+IC.play = '<path d="M7 4.5v15l12-7.5z"/>';
+
+function ovCard(s, today){
+  const left = s.examDate ? daysBetween(today, s.examDate) : null;
+  const wk = s.weekTotal ? Math.round(s.weekDone / s.weekTotal * 100) : null;
+  const ls = s.lastScore, ns = s.nextSession;
+  const seenDays = s.lastSeen ? daysBetween(String(s.lastSeen).slice(0, 10), today) : null;
+  const flags = [];
+  if (left !== null && left < 0) flags.push(['warn', 'exam date passed']);
+  if (s.hoursLeft != null && s.hoursLeft !== '' && Number(s.hoursLeft) <= 1) flags.push(['warn', s.hoursLeft + ' h left']);
+  if (!s.examDate) flags.push(['', 'no exam date']);
+  const sub = [s.exam || '', left !== null && left >= 0 ? left + ' days to exam' : ''].filter(Boolean).join(' · ');
+  return `<div class="scard" data-sid="${esc(s.id)}">
+    <div class="sc-top"><div class="row" style="flex-wrap:nowrap;gap:10px"><div class="avatar">${esc(s.name.charAt(0))}</div><div><b class="sc-name">${esc(s.name)}</b><div class="small muted">${esc(sub)}</div></div></div>
+      ${s.overdue ? `<span class="pill ${s.overdue >= 5 ? 'bad' : 'warn'}">${s.overdue} late</span>` : '<span class="pill ok">on track</span>'}</div>
+    <div class="sc-grid c3">
+      <div><span>Last score</span><b class="${ls ? 't' + pctClass(ls.percent) : ''}">${ls ? esc(ls.percent) + '%' : '—'}</b></div>
+      <div><span>This week</span><b>${wk === null ? '—' : wk + '%'}</b></div>
+      <div><span>Opened</span><b class="${seenDays === null || seenDays >= 3 ? 'stale' : ''}">${esc(ago(s.lastSeen))}</b></div>
+    </div>
+    ${flags.length ? `<div class="sc-flags">${flags.slice(0, 2).map(f => `<span class="pill ${f[0]}">${esc(f[1])}</span>`).join('')}</div>` : ''}
+    <div class="sc-foot small"><span class="grow">${ns ? `${ic('video','sm')} ${ns.startTime ? esc(fmtTime(ns.startTime)) : esc(fmtShort(ns.date))}` : '<span class="muted">No session</span>'}${s.openProblems ? ` · ${s.openProblems} question${s.openProblems > 1 ? 's' : ''}` : ''}</span>
+      <button class="btn sm ghost iconbtn" data-act="setInactive" data-id="${esc(s.id)}" title="Mark inactive (moves to the bottom)">${ic('pause','sm')} Inactive</button>${waButton(s, true)}</div>
+  </div>`;
+}
+
+const _renderOverview0 = renderOverview;
+renderOverview = function (){
+  _renderOverview0();
+  if (S.ovTable || !S.over) return;
+  const t = S.over.today || today();
+  const inactive = S.over.students.filter(s => !s.active && !s.pending).sort((a, b) => a.name.localeCompare(b.name));
+  document.querySelectorAll('.ovcols aside > .small.muted').forEach(el => { if (/Archived:/.test(el.textContent)) el.remove(); });
+  const col = document.querySelector('.ovcols > div'); if (!col || !inactive.length) return;
+  const open = S.inactiveOpen ? 'open' : '';
+  col.insertAdjacentHTML('beforeend', `<details class="inact card" ${open}><summary><span class="row" style="gap:8px">${ic('pause','sm')}<b>Inactive</b><span class="pill">${inactive.length}</span></span><span class="small muted">Hidden from the counts above · tap to show</span></summary>
+    ${inactive.map(s => `<div class="ovrow"><a href="#" data-sid="${esc(s.id)}"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.exam || '')} · opened ${esc(ago(s.lastSeen))}</span></a><button class="btn sm" data-act="setActive" data-id="${esc(s.id)}">${ic('play','sm')} Make active</button></div>`).join('')}</details>`);
+  const d = col.querySelector('details.inact'); d.addEventListener('toggle', () => { S.inactiveOpen = d.open; });
+};
+
+async function setStudentActive(id, on){
+  const s = S.over && S.over.students.find(x => x.id === id); if (!s) return;
+  s.active = on; renderOverview();
+  try { store.set('sp:admin:over', {t: Date.now(), d: S.over}); } catch (e) {}
+  try { await call('updateStudent', {id, active: on}); toast(on ? s.name + ' is active again' : s.name + ' moved to Inactive'); }
+  catch (e) { s.active = !on; renderOverview(); }
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act="setInactive"],[data-act="setActive"]'); if (!a) return;
+  e.preventDefault(); e.stopPropagation();
+  setStudentActive(a.dataset.id, a.dataset.act === 'setActive');
+}, true);
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+.sc-grid.c3{grid-template-columns:repeat(3,1fr)}
+.tok{color:var(--ok)} .twarn{color:var(--warn)} .tbad{color:var(--bad)}
+.iconbtn{padding:6px 10px;color:var(--muted)} .iconbtn:hover{color:var(--ink);background:#eef1f7}
+details.inact{padding:12px 16px;margin-top:4px}
+details.inact summary{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;list-style:none}
+details.inact summary::-webkit-details-marker{display:none}
+details.inact[open] summary{margin-bottom:6px}
+details.inact .ovrow a{color:var(--ink)}
+@media (max-width:860px){.sc-grid.c3{grid-template-columns:repeat(3,1fr)}}
+</style>`);
+
 </script>
 </body>
 </html>
