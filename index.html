@@ -357,6 +357,673 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .modal textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
 </style>`);
 
+
+
+/* =====================================================================
+   v16: smarter flashcards · system emojis · HY files page · plan week / month / year
+   ===================================================================== */
+
+/* ---------- system emojis ---------- */
+const SYS_EMO = {Cardio:'❤️', Pulm:'🫁', GI:'🍽️', Renal:'🫘', Endo:'🦋', 'Heme/Onc':'🩸', ID:'🦠', Neuro:'🧠', Psych:'🧘', 'OB/GYN':'🤰', Repro:'🌸',
+  Peds:'🧸', Surgery:'🏥', MSK:'🦴', Derm:'🧴', Ethics:'⚖️', Biostat:'📊', Pharm:'💊', Biochem:'⚗️', Genetics:'🧬', Immuno:'🛡️', Micro:'🦠',
+  Nutrition:'🥗', Allergy:'🤧', Screening:'🔍', 'Gen Path':'🔬', QI:'📋', CCS:'🩺'};
+const SYS_EXTRA = [[/anatom/i, '💪', 'Anatomy'], [/embryo/i, '🐣', 'Embryology'], [/histolog/i, '🔬', 'Histology'], [/physiolog/i, '⚙️', 'Physiology'],
+  [/nbme|uwsa|free 1[23]|self.?assess|practice test/i, '🎯', 'Practice test'], [/general|all systems|mixed|random/i, '⭐', 'General']];
+function sysInfo(t){
+  const s = systemOf(t);
+  if (s) return {emo: SYS_EMO[s] || '📘', name: s};
+  const x = SYS_EXTRA.find(([rx]) => rx.test(String(t || '')));
+  return x ? {emo: x[1], name: x[2]} : {emo: '📘', name: ''};
+}
+function sysEmoji(t){ return sysInfo(t).emo; }
+
+/* ---------- plan items: show the systems with their emoji ---------- */
+const _itemHtml5 = itemHtml;
+itemHtml = function (x, opt, showDate){
+  let h = _itemHtml5(x, opt, showDate);
+  const sys = x.type === 'Session' ? [] : systemsIn(x.text).slice(0, 3);
+  if (sys.length) h = h.replace('<div class="meta">', `<div class="meta">${sys.map(s => `<span class="syschip">${SYS_EMO[s] || '📘'} ${esc(s)}</span>`).join('')}`);
+  if (x.type === 'Exam') h = h.replace('class="item ', 'class="item is-exam ');
+  return h;
+};
+
+/* ---------- HY files & videos ---------- */
+resourcesHtml = function (list, admin){
+  if (!list.length) return '<div class="card"><h2>📂 HY files & videos</h2><div class="empty">No files yet.</div></div>';
+  const groups = {};
+  list.forEach(r => { const g = r.system || 'General'; (groups[g] = groups[g] || []).push(r); });
+  const order = Object.keys(groups).sort((a, b) => a === 'General' ? -1 : b === 'General' ? 1 : a.localeCompare(b));
+  const nS = list.filter(r => r.kind === 'slides').length, nV = list.filter(r => r.kind === 'video').length;
+  const kindEmo = k => k === 'video' ? '🎬' : k === 'slides' ? '🖥️' : k === 'tips' ? '💡' : '🔗';
+  return `<div class="card reshero">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px">
+        <div><h2 style="margin:0">📂 HY files & videos</h2><p class="small muted" style="margin:6px 0 0">${admin ? 'All exams. To add or change a link, edit the "Resources" tab of the Study Planner sheet.' : 'The Match Guy high-yield slides 🖥️ and crash-course videos 🎬 for your exam, by system.'}</p></div>
+        <div class="resnums"><span><b>${nS}</b>🖥️ slides</span><span><b>${nV}</b>🎬 videos</span></div>
+      </div>
+      <div class="ressearch"><span>🔎</span><input id="resQ" placeholder="Search a system or topic… e.g. cardio, renal, biostat" autocomplete="off"></div>
+      <div class="chips reschips"><button class="chip on" data-rk="all">✨ All</button><button class="chip" data-rk="slides">🖥️ Slides</button><button class="chip" data-rk="video">🎬 Videos</button></div>
+    </div>
+    <div class="resgrid2">${order.map(g => { const si = sysInfo(g); const sl = groups[g].filter(r => r.kind === 'slides').length, vd = groups[g].filter(r => r.kind === 'video').length; return `<div class="rescard" data-g="${esc(g.toLowerCase())}">
+      <div class="rch"><span class="remo">${g === 'General' ? '⭐' : si.emo}</span><div class="grow"><b>${esc(g)}</b><div class="small muted">${[sl ? sl + ' 🖥️' : '', vd ? vd + ' 🎬' : ''].filter(Boolean).join(' · ')}</div></div></div>
+      ${groups[g].map(r => `<a class="resrow2" data-k="${esc(r.kind)}" data-t="${esc((g + ' ' + r.title).toLowerCase())}" href="${esc(r.url)}" target="_blank" rel="noopener"><span class="rk ${esc(r.kind)}">${kindEmo(r.kind)}</span><span class="grow">${esc(r.title)}${admin ? ` <span class="pill">${esc(r.exam)}</span>` : ''}</span><span class="rgo">${r.kind === 'video' ? 'Watch' : 'Open'} ↗</span></a>`).join('')}
+    </div>`; }).join('')}</div>
+    <div class="empty resnone" style="display:none">No match. Try another word 🙂</div>`;
+};
+function resFilter(){
+  const q = (($('#resQ') || {}).value || '').trim().toLowerCase(), k = S.resKind || 'all';
+  let any = 0;
+  document.querySelectorAll('.rescard').forEach(c => {
+    let n = 0;
+    c.querySelectorAll('.resrow2').forEach(a => { const ok = (k === 'all' || a.dataset.k === k) && (!q || a.dataset.t.includes(q)); a.style.display = ok ? '' : 'none'; if (ok) n++; });
+    c.style.display = n ? '' : 'none'; any += n;
+  });
+  const none = $('.resnone'); if (none) none.style.display = any ? 'none' : '';
+}
+document.addEventListener('input', e => { if (e.target.id === 'resQ') resFilter(); });
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-rk]'); if (!c) return;
+  e.preventDefault(); e.stopPropagation();
+  S.resKind = c.dataset.rk; document.querySelectorAll('[data-rk]').forEach(b => b.classList.toggle('on', b === c)); resFilter();
+}, true);
+
+/* ---------- flashcards: real facts only, asked as questions ---------- */
+const FC_NOT_FACT = /\b(NBMEs?|UWSA|Free ?1[23][07]|UWorld|AMBOSS|Synapse|q-?banks?|questions?|Qs|blocks?|timed|tutor|sessions?|schedule|incorrects?|flagged|flag|test.?taking|test.?day|exam day|Dr\.? ?Karim|slides|videos?|homework|anki|you|your|yours|we|let's|minutes?|seconds?)\b/i;
+const FC_SKIP_BLOCK = /where you are|plan|decision|agreement|action|next|summary|strategy|test.?taking|schedule|goal|progress|score|before next|will send|homework/i;
+function fcClean(s){ return stripTags(s).replace(/\s*⭐\s*/g, ' ').replace(/\s+/g, ' ').trim(); }
+function fcFact(front, back){ return front && back && !FC_NOT_FACT.test(front + ' ' + back) && back.length >= 4 && front.length <= 120; }
+function fcSplitTop(b){
+  const out = []; let depth = 0, cur = '';
+  for (let i = 0; i < b.length; i++) {
+    const ch = b[i];
+    if (ch === '(') depth++; else if (ch === ')') depth = Math.max(0, depth - 1);
+    if (ch === ';' && depth === 0) { out.push(cur.trim()); cur = ''; while (b[i + 1] === ' ') i++; continue; }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out.filter(Boolean);
+}
+function cap(s){ return s && /^[a-z]{2,}/.test(s) ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function fcBack(b){
+  const parts = fcSplitTop(b.replace(/\.$/, ''));
+  return parts.length > 1 ? parts.map(p => '• ' + cap(p)).join('\n') : cap(parts[0] || '');
+}
+function fcMake(raw, ctx){
+  const s = fcClean(raw);
+  if (!s || /:$/.test(s)) return [];
+  let m = s.match(/^(.{3,80}?)\s+vs\.?\s+(.{2,80}?):\s+(.{4,})$/i);
+  if (m) { const bb = m[3].replace(/\.$/, '').split(/\s+vs\.?\s+/i); return [{front: `${cap(m[1])} vs ${m[2]}: how do you tell them apart?`, back: bb.length === 2 ? `${cap(m[1])}: ${bb[0]}\n${cap(m[2])}: ${bb[1]}` : cap(m[3]), kind: 'vs'}]; }
+  const c = splitCard(s, '');
+  if (!c) return [];
+  let [front, back] = c;
+  front = front.replace(/^[•·\-–\s]+/, '').replace(/\s→\s?$/, '');
+  const arrow = s.indexOf(' → ') > -1 && s.indexOf(' → ') < (s.indexOf(': ') > -1 ? s.indexOf(': ') : 1e9);
+  const parts = fcSplitTop(back);
+  const lab = /^([^:=→]{2,70}?)(:|\s=|\s→)\s+(.{3,})$/;
+  const generic = /^(causes?|treatment|treat|risk|signs?|labs?|side effects?|secondary|primary|also|diagnosis|test|mechanism|cause)$/i;
+  if (parts.length > 1 && parts.slice(1).every(p => lab.test(p))) {
+    const base = front.replace(/\s*\(.*\)$/, '');
+    return [{front: cap(arrow ? front + ' → ?' : front), back: fcBack(parts[0]), kind: 'fact'}].concat(parts.slice(1).map(p => { const q = p.match(lab); let f = q[1].trim(); if (generic.test(f)) f = base + ' — ' + f.toLowerCase(); return {front: cap(q[2] && q[2] === '' ? f : (q[2].trim() === '→' ? f : f)) + (q[2].trim() === '→' ? ' → ?' : ''), back: fcBack(q[3]), kind: 'fact'}; }));
+  }
+  if (front.split(/\s+/).length === 1 && /^[a-z]/.test(front) && ctx) front = ctx + ': ' + front;
+  return [{front: cap(arrow ? front + ' → ?' : front), back: fcBack(back), kind: arrow ? 'arrow' : 'fact'}];
+}
+buildCards = function (d){
+  const out = [], seen = {};
+  const add = (card, src, tag) => {
+    if (Array.isArray(card)) return card.forEach(c => add(c, src, tag));
+    if (!card || !fcFact(card.front.replace(/: how do you tell them apart\?$/, ''), card.back)) return;
+    const id = hash(card.front + '|' + card.back); if (seen[id]) return; seen[id] = 1;
+    out.push({id, front: card.front, back: card.back, src, tag, kind: card.kind});
+  };
+  (d.missed || []).forEach(x => { if (x.takeaway) { const c0 = fcMake((x.topic || x.system) + ': ' + x.takeaway, ''); const c = c0.length ? c0 : {front: x.topic || x.system, back: fcBack(fcClean(x.takeaway)), kind: 'fact'}; add(c, 'mistake', x.system || ''); } });
+  (d.notes || []).forEach(n => {
+    const p = parseNote(n.summary);
+    const rich = p.blocks.some(b => b.subs.length);
+    p.blocks.forEach(b => {
+      if (b.title && FC_SKIP_BLOCK.test(b.title)) return;
+      if (rich && /KEY|TAKEAWAY/i.test(b.title) && !b.subs.length) return;
+      if (/MISTAKE|WEAK/i.test(b.title)) {
+        b.items.forEach(it => { const m = fcClean(it.s).match(/→\s*rule:\s*(.+)$/i); if (m) add(fcMake(m[1], ''), 'mistake', smartTitle(n.title)); });
+        return;
+      }
+      const take = (items, tag) => { let parent = ''; items.forEach(it => {
+        if (it.t === 'li') parent = fcClean(it.s).replace(/:$/, '').split(/[:(]/)[0].trim();
+        if (it.t === 'p' && !/:/.test(it.s)) return;
+        add(fcMake(it.s, it.t === 'sub' && parent ? parent : tag), 'notes', tag);
+      }); };
+      if (b.subs.length) { if (!/KEY|TAKEAWAY/i.test(b.title)) take(b.items, smartTitle(b.title)); b.subs.forEach(sb => { if (!FC_SKIP_BLOCK.test(sb.title)) take(sb.items, smartTitle(sb.title)); }); }
+      else take(b.items, /LOOK.?ALIKE/i.test(b.title) ? 'Look-alikes' : /KEY|TAKEAWAY/i.test(b.title) ? 'Key takeaway' : smartTitle(b.title || n.title));
+    });
+  });
+  return out;
+};
+
+/* ---------- plan: week / month / year ---------- */
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function ym(d){ return d.slice(0, 7); }
+function ymAdd(m, n){ let [y, mo] = m.split('-').map(Number); mo += n; while (mo > 12) { mo -= 12; y++; } while (mo < 1) { mo += 12; y--; } return y + '-' + String(mo).padStart(2, '0'); }
+function daysIn(m){ const [y, mo] = m.split('-').map(Number); return new Date(y, mo, 0).getDate(); }
+function planExam(){ const st = S.data && S.data.student; return st && st.examDate ? st.examDate : ''; }
+function qOf(x){ return x.type === 'Qbank' ? qCount(x.text) : 0; }
+function qDoneX(x){ const q = qOf(x); return x.done ? q : Math.min(Number(x.doneQ) || 0, q); }
+function dayInfo(plan, day){
+  const items = plan.filter(x => x.date === day).sort(byOrder);
+  const tasks = items.filter(x => x.type !== 'Session');
+  const done = tasks.filter(x => x.done).length;
+  const exam = items.find(x => x.type === 'Exam'), sess = items.find(x => x.type === 'Session');
+  return {items, tasks, done, exam, sess, q: tasks.reduce((a, x) => a + qOf(x), 0), qd: tasks.reduce((a, x) => a + qDoneX(x), 0)};
+}
+function periodStats(plan, from, to){
+  const it = plan.filter(x => x.date >= from && x.date <= to && x.type !== 'Session');
+  const done = it.filter(x => x.done).length, q = it.reduce((a, x) => a + qOf(x), 0), qd = it.reduce((a, x) => a + qDoneX(x), 0);
+  const tests = plan.filter(x => x.date >= from && x.date <= to && x.type === 'Exam').length;
+  const sess = plan.filter(x => x.date >= from && x.date <= to && x.type === 'Session').length;
+  return {n: it.length, done, pct: it.length ? Math.round(done / it.length * 100) : 0, q, qd, tests, sess};
+}
+function statStrip(s){
+  return `<div class="pstats">
+    <div><span>✅ Done</span><b>${s.done}/${s.n}</b><i class="pbar"><i style="width:${s.pct}%"></i></i></div>
+    <div><span>📝 Questions</span><b>${s.qd.toLocaleString()}<small> / ${s.q.toLocaleString()}</small></b></div>
+    <div><span>🎯 Practice tests</span><b>${s.tests}</b></div>
+    <div><span>🎥 Sessions</span><b>${s.sess}</b></div>
+  </div>`;
+}
+function chipFor(x){
+  if (x.type === 'Exam') return `<span class="mchip ex">🎯 ${esc(String(x.text).replace(/\s*\(.*$/, '').replace(/:.*$/, '').slice(0, 22))}</span>`;
+  if (x.type === 'Session') return `<span class="mchip se">🎥 Session</span>`;
+  const sys = systemsIn(x.text), q = qOf(x);
+  const emo = sys.length ? sys.slice(0, 2).map(s => SYS_EMO[s] || '📘').join('') : (TYPE_EMO[x.type] || '📌');
+  const label = x.type === 'Qbank' ? (q ? q + ' Qs' : 'Qbank') : sys.length ? sys[0] : String(x.text).slice(0, 14);
+  return `<span class="mchip ${x.done ? 'ok' : ''}">${emo} ${esc(label)}</span>`;
+}
+const TYPE_EMO = {Qbank:'📝', Study:'📖', Session:'🎥', Exam:'🎯', Other:'📌'};
+function dayChips(di, day){
+  const out = [], t = today();
+  di.items.filter(x => x.type === 'Exam').forEach(x => out.push(chipFor(x)));
+  if (di.sess) out.push(chipFor(di.sess));
+  const tasks = di.tasks.filter(x => x.type !== 'Exam');
+  const sys = []; tasks.forEach(x => systemsIn(x.text).forEach(n => { if (!sys.includes(n)) sys.push(n); }));
+  const allDone = tasks.length && tasks.every(x => x.done);
+  if (sys.length) out.push(`<span class="mchip ${allDone ? 'ok' : ''}">${sys.slice(0, 2).map(n => SYS_EMO[n] || '📘').join('')} ${esc(sys.slice(0, 2).join(' + '))}</span>`);
+  const q = tasks.reduce((a, x) => a + qOf(x), 0), qd = tasks.reduce((a, x) => a + qDoneX(x), 0);
+  if (q) out.push(`<span class="mchip ${qd >= q ? 'ok' : ''}">📝 ${day <= t && qd < q ? qd + '/' : ''}${q} Qs</span>`);
+  if (tasks.some(x => /flashcard|ready-made deck/i.test(x.text))) out.push('<span class="mchip dk">🃏 Deck</span>');
+  if (!out.length && tasks.length) out.push(`<span class="mchip">${TYPE_EMO[tasks[0].type] || '📌'} ${esc(String(tasks[0].text).slice(0, 18))}</span>`);
+  return out.slice(0, 4).join('');
+}
+function monthHtml(plan, opt){
+  const t = today(), m = S.planMonth || ym(t), exam = planExam();
+  const first = m + '-01', last = m + '-' + String(daysIn(m)).padStart(2, '0');
+  const start = mondayOf(first);
+  const weeks = Math.ceil((daysBetween(start, last) + 1) / 7);
+  let cells = '';
+  for (let i = 0; i < weeks * 7; i++) {
+    const day = addDays(start, i), inM = ym(day) === m, di = dayInfo(plan, day);
+    const isExam = exam && day === exam;
+    const state = !di.tasks.length ? 'free' : day < t ? (di.done === di.tasks.length ? 'all' : di.done ? 'some' : 'none') : 'todo';
+    cells += `<div class="mcell ${inM ? '' : 'out'} ${day === t ? 'today' : ''} ${day < t ? 'past' : ''} st-${state} ${di.exam ? 'has-ex' : ''} ${isExam ? 'is-exam' : ''}" data-act="pickDay" data-d="${day}">
+      <div class="mtop"><span class="mnum">${Number(day.slice(8))}</span>${di.tasks.length ? `<span class="mfrac">${day <= t ? di.done + '/' + di.tasks.length : ''}</span>` : ''}</div>
+      ${isExam ? '<span class="mchip big">🏁 Exam day</span>' : dayChips(di, day)}
+      <div class="mdots">${di.items.slice(0, 6).map(x => `<i class="${x.type === 'Exam' ? 'ex' : x.type === 'Session' ? 'se' : x.done ? 'ok' : day < t ? 'late' : ''}"></i>`).join('')}</div>
+    </div>`;
+  }
+  return `<div class="pnav"><button class="btn sm" data-act="mNav" data-n="-1">‹</button><h3>${MONTH_NAMES[+m.slice(5) - 1]} ${m.slice(0, 4)}</h3><button class="btn sm" data-act="mNav" data-n="1">›</button>
+      <button class="btn sm ghost" data-act="mNav" data-n="0">Today</button></div>
+    ${statStrip(periodStats(plan, first, last))}
+    <div class="card mcal"><div class="mgrid mhead">${DOW.map(d => `<div>${d}</div>`).join('')}</div><div class="mgrid">${cells}</div>
+      <div class="legend"><span><i class="lg all"></i>All done</span><span><i class="lg some"></i>Part done</span><span><i class="lg none"></i>Missed</span><span><i class="lg todo"></i>Planned</span><span>🎯 Practice test</span><span>🎥 Session</span><span>🏁 Exam</span></div></div>
+    <p class="small muted" style="text-align:center">Tap a day to open it in the week view.</p>`;
+}
+function yearHtml(plan, opt){
+  const t = today(), exam = planExam();
+  const dates = plan.map(x => x.date).filter(Boolean).sort();
+  let from = ym(dates[0] && dates[0] < t ? dates[0] : t), to = ym([dates[dates.length - 1] || t, exam || t, t].sort().pop());
+  const months = []; for (let mm = from; mm <= to && months.length < 12; mm = ymAdd(mm, 1)) months.push(mm);
+  while (months.length < 3) months.push(ymAdd(months[months.length - 1], 1));
+  const all = periodStats(plan, months[0] + '-01', months[months.length - 1] + '-31');
+  const left = exam ? daysBetween(t, exam) : null;
+  const startD = dates[0] || t, span = exam ? Math.max(1, daysBetween(startD, exam)) : 0, gone = exam ? Math.min(span, Math.max(0, daysBetween(startD, t))) : 0;
+  return `${exam ? `<div class="card ytrack"><div class="row" style="justify-content:space-between"><b>🚀 Road to exam day</b><span class="small muted">${left >= 0 ? left + ' days left' : 'exam date passed'} · 🏁 ${esc(fmtDay(exam))}</span></div>
+      <div class="ybar"><i style="width:${Math.round(gone / span * 100)}%"></i><span class="yflag" style="left:${Math.round(gone / span * 100)}%">📍</span></div></div>` : ''}
+    ${statStrip(all)}
+    <div class="ygrid">${months.map(mm => {
+      const first = mm + '-01', start = mondayOf(first), n = daysIn(mm), lastD = mm + '-' + String(n).padStart(2, '0');
+      const ps = periodStats(plan, first, lastD);
+      let sq = '';
+      for (let i = 0; i < Math.ceil((daysBetween(start, lastD) + 1) / 7) * 7; i++) {
+        const day = addDays(start, i);
+        if (ym(day) !== mm) { sq += '<span class="ysq out"></span>'; continue; }
+        const di = dayInfo(plan, day);
+        const cls = exam && day === exam ? 'ex2' : di.exam ? 'ex' : !di.tasks.length ? (di.sess ? 'se' : '') : day < t ? (di.done === di.tasks.length ? 'all' : di.done ? 'some' : 'none') : 'todo';
+        sq += `<span class="ysq ${cls} ${day === t ? 'now' : ''}" title="${esc(fmtDay(day))}${di.tasks.length ? ' · ' + di.done + '/' + di.tasks.length + ' done' : ''}${di.exam ? ' · ' + esc(di.exam.text) : ''}"></span>`;
+      }
+      return `<div class="card ymon" data-act="pickMonth" data-m="${mm}"><div class="row" style="justify-content:space-between"><b>${MONTH_NAMES[+mm.slice(5) - 1]} ${mm.slice(0, 4)}</b><span class="small muted">${ps.n ? (mm < ym(t) || mm === ym(t) ? ps.pct + '% ✅' : ps.n + ' items') : '—'}</span></div>
+        <div class="ydow">${DOW.map(d => `<span>${d[0]}</span>`).join('')}</div><div class="ysqs">${sq}</div>
+        <div class="small muted ysum">${ps.q ? '📝 ' + ps.q.toLocaleString() + ' Qs' : ''}${ps.tests ? ' · 🎯 ' + ps.tests : ''}${ps.sess ? ' · 🎥 ' + ps.sess : ''}</div></div>`;
+    }).join('')}</div>
+    <div class="legend" style="justify-content:center"><span><i class="lg all"></i>All done</span><span><i class="lg some"></i>Part done</span><span><i class="lg none"></i>Missed</span><span><i class="lg todo"></i>Planned</span><span><i class="lg ex"></i>Practice test</span><span><i class="lg ex2"></i>Exam</span></div>`;
+}
+const _planHtml5 = planHtml;
+planHtml = function (plan, opt){
+  const v = S.planView || 'week';
+  const sw = `<div class="pviews" role="tablist">${[['week','🗓️','Week'],['month','📅','Month'],['year','🗺️','Year']].map(([k, e, l]) => `<button class="${v === k ? 'on' : ''}" data-act="pView" data-v="${k}"><span>${e}</span>${l}</button>`).join('')}</div>`;
+  if (v === 'month') return sw + monthHtml(plan, opt);
+  if (v === 'year') return sw + yearHtml(plan, opt);
+  const t = today(), ws = S.weekStart || mondayOf(t);
+  return sw + statStrip(periodStats(plan, ws, addDays(ws, 6))) + _planHtml5(plan, opt);
+};
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act="pView"],[data-act="mNav"],[data-act="pickDay"],[data-act="pickMonth"]'); if (!a) return;
+  e.preventDefault(); e.stopPropagation();
+  const act = a.dataset.act;
+  if (act === 'pView') { S.planView = a.dataset.v; if (S.planView === 'month' && !S.planMonth) S.planMonth = ym(S.weekStart && S.weekStart > today() ? S.weekStart : today()); }
+  if (act === 'mNav') { const n = +a.dataset.n; S.planMonth = n === 0 ? ym(today()) : ymAdd(S.planMonth || ym(today()), n); }
+  if (act === 'pickDay') { const d = a.dataset.d; S.planView = 'week'; S.weekStart = mondayOf(d); S.scrollDay = d; }
+  if (act === 'pickMonth') { S.planView = 'month'; S.planMonth = a.dataset.m; }
+  rerender();
+  if (S.scrollDay) { const d = S.scrollDay; S.scrollDay = null; setTimeout(() => { const el = [...document.querySelectorAll('.day')][daysBetween(mondayOf(d), d)]; if (el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.add('flash'); } }, 60); }
+}, true);
+
+/* rename the tab: it is the whole plan now */
+ST_TABS.forEach(t => { if (t[0] === 'week') t[2] = 'My plan'; });
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+.syschip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--ink2);background:#f3f5fa;border:1px solid var(--line2);border-radius:999px;padding:1px 8px}
+.item.is-exam{background:linear-gradient(90deg,#fff7ed,#fff);border-color:#fed7aa}
+.pviews{display:inline-flex;gap:4px;padding:4px;background:#eef1f7;border-radius:12px;margin-bottom:14px}
+.pviews button{border:0;background:transparent;font:600 13.5px var(--font);color:var(--ink2);padding:7px 14px;border-radius:9px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.pviews button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(15,23,42,.12)}
+.pstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.pstats>div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:var(--sh)}
+.pstats span{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.pstats b{font-size:19px;letter-spacing:-.02em} .pstats small{font-size:12px;color:var(--muted);font-weight:600}
+.pbar{display:block;height:5px;background:#eef1f7;border-radius:9px;margin-top:6px;overflow:hidden}.pbar i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:9px}
+.pnav{display:flex;align-items:center;gap:8px;margin-bottom:12px}.pnav h3{margin:0 6px;min-width:150px;text-align:center}
+.mcal{padding:12px}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.mhead div{font-size:11.5px;font-weight:700;color:var(--muted);text-align:center;padding:2px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.mcell{min-height:104px;border:1px solid var(--line2);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:3px;cursor:pointer;background:#fff;transition:.12s;overflow:hidden}
+.mcell:hover{border-color:#a5b4fc;box-shadow:0 2px 8px rgba(59,91,219,.12)}
+.mcell.out{opacity:.38}
+.mcell.today{border:2px solid var(--brand);box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.mcell.st-all{background:#f0fbf4}.mcell.st-some{background:#fbfaf0}.mcell.st-none{background:#fff5f5}
+.mcell.has-ex{background:linear-gradient(180deg,#fff7ed,#fff)}.mcell.is-exam{background:linear-gradient(160deg,#1e1b4b,#3b5bdb);color:#fff}
+.mtop{display:flex;justify-content:space-between;align-items:center}.mnum{font-weight:700;font-size:13px}.mfrac{font-size:10.5px;font-weight:700;color:var(--muted)}
+.mchip{display:block;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#f3f5fa;border-radius:6px;padding:1px 5px;color:var(--ink2)}
+.mchip.ok{background:#dcfce7;color:#166534}.mchip.ok::before{content:'✓ ';font-weight:800}.mchip.dk{background:#f3e8ff;color:#6b21a8}
+.mchip.ex{background:#ffedd5;color:#9a3412}.mchip.se{background:#e0e7ff;color:#3730a3}.mchip.big{background:rgba(255,255,255,.18);color:#fff;font-size:12px;padding:3px 6px}
+.mmore{font-size:10.5px;color:var(--muted);font-weight:600}
+.mdots{display:none;gap:3px;flex-wrap:wrap;margin-top:auto}.mdots i{width:6px;height:6px;border-radius:50%;background:#c7d2fe}.mdots i.ok{background:#22c55e}.mdots i.late{background:#f87171}.mdots i.ex{background:#f97316}.mdots i.se{background:#6366f1}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:12px;color:var(--muted);font-weight:600}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.lg{display:inline-block;width:12px;height:12px;border-radius:4px}.lg.all{background:#22c55e}.lg.some{background:#facc15}.lg.none{background:#f87171}.lg.todo{background:#c7d2fe}.lg.ex{background:#f97316}.lg.ex2{background:#1e1b4b}
+.ygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.ymon{padding:12px 14px;cursor:pointer;transition:.12s;margin:0}.ymon:hover{border-color:#a5b4fc;transform:translateY(-1px)}
+.ydow,.ysqs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}.ysqs{grid-auto-rows:auto}
+.ydow span{font-size:10px;color:var(--muted);text-align:center;font-weight:700}
+.ysq{height:20px;border-radius:4px;background:#f1f3f8;display:block}.ysq.out{background:transparent}
+.ysq.all{background:#22c55e}.ysq.some{background:#facc15}.ysq.none{background:#f87171}.ysq.todo{background:#c7d2fe}.ysq.ex{background:#f97316}.ysq.ex2{background:#1e1b4b}.ysq.se{background:#a5b4fc}
+.ysq.now{outline:2px solid var(--brand);outline-offset:1px}
+.ysum{margin-top:8px;min-height:16px}
+.ytrack{padding:14px 16px}.ybar{position:relative;height:10px;background:#eef1f7;border-radius:9px;margin:14px 0 4px}
+.ybar>i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#818cf8,#3b5bdb)}.yflag{position:absolute;top:-17px;transform:translateX(-50%);font-size:16px}
+.day.flash{animation:flash 1.4s}@keyframes flash{0%,40%{box-shadow:0 0 0 4px rgba(99,102,241,.35)}100%{box-shadow:var(--sh)}}
+.reshero{background:linear-gradient(135deg,#eef2ff 0%,#fff 60%)}
+.resnums{display:flex;gap:10px}.resnums span{background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--muted);display:flex;gap:6px;align-items:center}.resnums b{font-size:17px;color:var(--ink)}
+.ressearch{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px 12px;margin-top:14px}
+.ressearch input{border:0;outline:0;flex:1;font:inherit;padding:8px 0;background:transparent}
+.reschips{margin-top:10px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:600 13px var(--font);color:var(--ink2);cursor:pointer}.chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.resgrid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.rescard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--sh)}
+.rch{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.remo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#f5f7ff,#e0e7ff);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.resrow2{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;color:var(--ink);font-size:13.5px;font-weight:500;border:1px solid transparent}
+.resrow2:hover{background:#f5f7ff;border-color:#e0e7ff}
+.rk{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;background:#f3f5fa}.rk.video{background:#fee2e2}.rk.slides{background:#e0f2fe}
+.rgo{font-size:12px;font-weight:700;color:var(--brand);flex:none}
+.fc-back{white-space:pre-line;text-align:left}
+@media (max-width:860px){
+  .pstats{grid-template-columns:repeat(2,1fr)}
+  .mgrid{gap:3px}.mcell{min-height:58px;padding:4px;border-radius:8px}.mcell .mchip,.mcell .mmore,.mfrac{display:none}.mcell .mchip.big{display:block;font-size:9px;padding:1px 2px}.mdots{display:flex}
+  .pnav h3{min-width:0;font-size:16px}
+}
+</style>`);
+
+/* =====================================================================
+   v16: ready-made Step 1 flashcard decks (Dr. Karim's high-yield set)
+   ===================================================================== */
+const DECKS = {step1: {
+  'Cardio': [
+    ['Murmur that gets LOUDER with standing or Valsalva (↓ preload)?', 'HCM (and MVP: click comes earlier)\nAll other murmurs get softer'],
+    ['Crescendo-decrescendo systolic murmur at the right upper sternal border → carotids?', 'Aortic stenosis\n• Syncope, angina, dyspnea on exertion'],
+    ['S3 vs S4: which means a stiff ventricle?', 'S4 = stiff ventricle (concentric hypertrophy, aortic stenosis, chronic HTN)\nS3 = volume overload (dilated heart, MR)'],
+    ['Drugs that lower mortality in HFrEF?', 'ACE inhibitor/ARB (or ARNI), beta blocker, spironolactone, SGLT2 inhibitor'],
+    ['Antiarrhythmic class that causes torsades and pulmonary fibrosis?', 'Class III: amiodarone\n• Also thyroid and liver toxicity, blue-gray skin'],
+    ['Digoxin toxicity: signs and what makes it worse?', 'Yellow vision, nausea, arrhythmias\n• Worse with hypokalemia\n• Antidote: anti-digoxin Fab'],
+    ['Fever + new murmur in an IV drug user: valve and organism?', 'Tricuspid valve, Staph aureus\n• Septic pulmonary emboli'],
+    ['Pericarditis ECG?', 'Diffuse ST elevation + PR depression'],
+    ['Beck triad?', 'Cardiac tamponade: hypotension, distended neck veins, muffled heart sounds\n• Pulsus paradoxus'],
+    ['Most common cause of death in the first days after MI vs at 3–14 days?', 'First days: arrhythmia (VF)\n3–14 days: free wall rupture (macrophages, weak granulation tissue)']
+  ],
+  'Renal': [
+    ['Prerenal AKI vs ATN: BUN/Cr and FENa?', 'Prerenal: BUN/Cr > 20, FENa < 1%\nATN: BUN/Cr < 15, FENa > 2%, muddy brown casts'],
+    ['Which arteriole does angiotensin II constrict?', 'Efferent arteriole → keeps GFR up\n• ACE inhibitors drop GFR in bilateral renal artery stenosis'],
+    ['Where do loop diuretics act and what do they cause?', 'Thick ascending limb (NKCC2)\n• Hypokalemia, contraction alkalosis, ototoxicity, hypocalcemia'],
+    ['High anion gap metabolic acidosis causes?', 'MUDPILES: methanol, uremia, DKA, propylene glycol, iron/isoniazid, lactic acidosis, ethylene glycol, salicylates'],
+    ['Winter formula?', 'Expected pCO2 = 1.5 × HCO3 + 8 ± 2'],
+    ['Nephrotic syndrome in a child?', 'Minimal change disease\n• Podocyte effacement on EM, responds to steroids'],
+    ['Nephritic syndrome 2–3 weeks after a strep throat infection?', 'Post-streptococcal glomerulonephritis\n• Low C3, subepithelial humps'],
+    ['RBC casts mean?', 'Glomerulonephritis (nephritic syndrome)'],
+    ['WBC casts mean?', 'Pyelonephritis (or acute interstitial nephritis)'],
+    ['Renal cell carcinoma: cell of origin and paraneoplastic effects?', 'Proximal tubule cells\n• EPO (polycythemia), PTHrP, renin, ACTH\n• Linked to VHL (chromosome 3)']
+  ],
+  'Pulm': [
+    ['Obstructive vs restrictive: FEV1/FVC and TLC?', 'Obstructive: FEV1/FVC < 0.7, ↑ TLC\nRestrictive: FEV1/FVC normal or ↑, ↓ TLC'],
+    ['Hypoxemia that does NOT correct with 100% oxygen?', 'Shunt (V/Q = 0)'],
+    ['Panacinar emphysema in the lower lobes in a young nonsmoker?', 'Alpha-1 antitrypsin deficiency\n• May also cause liver cirrhosis'],
+    ['Lung cancer with SIADH, ectopic ACTH and Lambert-Eaton?', 'Small cell carcinoma (central, smokers)'],
+    ['Lung cancer with hypercalcemia?', 'Squamous cell carcinoma (PTHrP)'],
+    ['Most common lung cancer in nonsmokers?', 'Adenocarcinoma (peripheral)'],
+    ['Pneumonia with hyponatremia and diarrhea?', 'Legionella\n• Urine antigen test'],
+    ['Bilateral hilar lymphadenopathy + hypercalcemia + noncaseating granulomas?', 'Sarcoidosis\n• 1-alpha-hydroxylase in macrophages'],
+    ['Asbestosis: lobes and main cancer risk?', 'Lower lobes, calcified pleural plaques\n• Bronchogenic carcinoma is more common than mesothelioma'],
+    ['What shifts the O2 curve to the right?', '↑ CO2, ↑ H+ (acid), ↑ temperature, ↑ 2,3-BPG, exercise']
+  ],
+  'GI': [
+    ['Crohn disease vs ulcerative colitis?', 'Crohn: transmural, skip lesions, terminal ileum, granulomas, fistulas\nUC: mucosal, continuous from rectum, crypt abscesses, PSC'],
+    ['AST:ALT > 2?', 'Alcoholic liver disease'],
+    ['UC + beaded bile ducts + p-ANCA?', 'Primary sclerosing cholangitis\n• ↑ risk of cholangiocarcinoma'],
+    ['Middle-aged woman, itching, anti-mitochondrial antibodies?', 'Primary biliary cholangitis'],
+    ['Most specific enzyme for acute pancreatitis?', 'Lipase'],
+    ['Painless jaundice + palpable gallbladder?', 'Pancreatic head adenocarcinoma (Courvoisier sign)\n• CA 19-9'],
+    ['Celiac disease: antibody and biopsy?', 'Anti-tTG IgA (check total IgA)\n• Villous atrophy, crypt hyperplasia\n• Dermatitis herpetiformis'],
+    ['Strep gallolyticus (bovis) endocarditis → look for?', 'Colon cancer'],
+    ['Gilbert syndrome?', 'Mild unconjugated hyperbilirubinemia with fasting or stress; benign'],
+    ['Wilson disease findings?', 'Low ceruloplasmin, Kayser-Fleischer rings, liver disease + movement/psych problems\n• ATP7B, chromosome 13']
+  ],
+  'Endo': [
+    ['Hypertension + low K + LOW renin?', 'Primary hyperaldosteronism (Conn)'],
+    ['Cushing: ACTH high and suppresses with high-dose dexamethasone?', 'Pituitary adenoma (Cushing disease)\n• Ectopic ACTH does not suppress'],
+    ['Pheochromocytoma: which blocker first?', 'Alpha blocker (phenoxybenzamine) BEFORE any beta blocker'],
+    ['Graves vs Hashimoto antibodies?', 'Graves: TSH-receptor stimulating antibodies\nHashimoto: anti-TPO'],
+    ['Thyroid cancer with psammoma bodies and Orphan Annie nuclei?', 'Papillary carcinoma (most common)'],
+    ['Thyroid cancer with calcitonin and amyloid?', 'Medullary carcinoma (C cells)\n• MEN 2A/2B, RET'],
+    ['21-hydroxylase deficiency?', '↓ cortisol, ↓ aldosterone, ↑ androgens\n• Salt wasting, ↑ 17-OH progesterone'],
+    ['Diabetes drug that causes fluid retention (avoid in heart failure)?', 'Pioglitazone (PPAR-gamma agonist)'],
+    ['SGLT2 inhibitor side effects?', 'Genital yeast infections, UTIs, euglycemic DKA'],
+    ['Central vs nephrogenic DI?', 'Central: urine concentrates after desmopressin\nNephrogenic: no response (lithium, hypercalcemia)']
+  ],
+  'Repro': [
+    ['Tall male, small firm testes, gynecomastia, ↑ FSH/LH?', 'Klinefelter syndrome (47,XXY)'],
+    ['Short stature, webbed neck, streak ovaries, coarctation?', 'Turner syndrome (45,X)\n• Bicuspid aortic valve'],
+    ['Testicular tumor with ↑ AFP and Schiller-Duval bodies?', 'Yolk sac tumor'],
+    ['Testicular tumor with ↑ hCG?', 'Choriocarcinoma'],
+    ['PCOS: hormones and cancer risk?', '↑ LH:FSH, ↑ androgens, insulin resistance\n• ↑ endometrial cancer risk'],
+    ['Why can a molar pregnancy cause hyperthyroidism?', 'hCG shares the alpha subunit with TSH'],
+    ['Most common ovarian tumor in women 20–30?', 'Mature cystic teratoma (dermoid cyst)'],
+    ['Ovarian tumor with Call-Exner bodies?', 'Granulosa cell tumor (makes estrogen)'],
+    ['Breast cancer with peau d\'orange?', 'Inflammatory breast cancer (dermal lymphatics blocked)'],
+    ['Preeclampsia definition?', 'New hypertension after 20 weeks + proteinuria or end-organ damage']
+  ],
+  'Neuro': [
+    ['Upper vs lower motor neuron signs?', 'UMN: spasticity, hyperreflexia, Babinski\nLMN: weakness, atrophy, fasciculations, hyporeflexia'],
+    ['Epidural vs subdural hematoma?', 'Epidural: middle meningeal artery, lens-shaped, lucid interval\nSubdural: bridging veins, crescent-shaped'],
+    ['Worst headache of my life?', 'Subarachnoid hemorrhage (berry aneurysm)\n• Nimodipine prevents vasospasm'],
+    ['Brown-Séquard syndrome?', 'Same side: motor + vibration/proprioception loss\nOpposite side: pain and temperature loss'],
+    ['Cape-like loss of pain and temperature?', 'Syringomyelia (Chiari I malformation)'],
+    ['Dorsal column + lateral corticospinal tract damage?', 'Subacute combined degeneration (B12 deficiency)'],
+    ['Lateral medullary (Wallenberg) syndrome artery?', 'PICA\n• Dysphagia, hoarseness, ipsilateral Horner, crossed pain/temperature loss'],
+    ['Huntington disease?', 'CAG repeats (chromosome 4), caudate atrophy, ↑ dopamine, ↓ GABA'],
+    ['Startle myoclonus + rapid dementia + 14-3-3 protein?', 'Creutzfeldt-Jakob disease (prion)'],
+    ['Neurofibromatosis type 2?', 'Bilateral vestibular schwannomas, NF2 on chromosome 22']
+  ],
+  'Psych': [
+    ['Lithium side effects?', 'Nephrogenic DI, hypothyroidism, tremor\n• Ebstein anomaly in pregnancy'],
+    ['Clozapine: must-monitor side effect?', 'Agranulocytosis (check neutrophil counts)\n• Also seizures, myocarditis'],
+    ['Fever, rigidity, high CK after an antipsychotic?', 'Neuroleptic malignant syndrome → dantrolene or bromocriptine'],
+    ['Clonus, hyperreflexia, hyperthermia after SSRI + MAOI?', 'Serotonin syndrome → cyproheptadine'],
+    ['Antidepressant to avoid in bulimia?', 'Bupropion (lowers seizure threshold)'],
+    ['Order of antipsychotic movement side effects?', 'Acute dystonia (hours) → akathisia (days) → parkinsonism (weeks) → tardive dyskinesia (months)'],
+    ['Withdrawal that can cause seizures?', 'Alcohol and benzodiazepines\n• Opioid withdrawal does not'],
+    ['Opioid withdrawal signs?', 'Yawning, dilated pupils, piloerection, diarrhea, rhinorrhea'],
+    ['Wernicke encephalopathy triad?', 'Confusion, ophthalmoplegia, ataxia\n• Give thiamine before glucose'],
+    ['First-line treatment for most anxiety and depressive disorders?', 'SSRIs + psychotherapy (CBT)']
+  ],
+  'Heme/Onc': [
+    ['Microcytic anemia with normal ferritin and target cells?', 'Thalassemia trait'],
+    ['PT vs PTT: which pathway and which drug?', 'PT: extrinsic (factor VII), warfarin\nPTT: intrinsic, heparin'],
+    ['DIC labs?', '↑ PT, ↑ PTT, ↓ fibrinogen, ↑ D-dimer, ↓ platelets, schistocytes'],
+    ['TTP pentad?', 'Fever, hemolytic anemia with schistocytes, low platelets, kidney injury, confusion\n• Low ADAMTS13'],
+    ['Platelets drop 5–10 days after starting heparin?', 'Heparin-induced thrombocytopenia → stop heparin, start argatroban'],
+    ['Reed-Sternberg cells?', 'Hodgkin lymphoma (CD15+, CD30+)'],
+    ['t(9;22)?', 'CML: BCR-ABL → imatinib'],
+    ['t(15;17)?', 'APL (AML M3) → all-trans retinoic acid\n• High DIC risk'],
+    ['t(8;14)?', 'Burkitt lymphoma: c-MYC, starry sky'],
+    ['Multiple myeloma: CRAB?', 'HyperCalcemia, Renal failure, Anemia, Bone lytic lesions\n• M spike, rouleaux']
+  ],
+  'MSK': [
+    ['Gout vs pseudogout crystals?', 'Gout: needle-shaped, negatively birefringent\nPseudogout: rhomboid, positively birefringent'],
+    ['Rheumatoid vs osteoarthritis joints?', 'RA: MCP + PIP, morning stiffness > 1 h, anti-CCP\nOA: DIP, worse with use'],
+    ['Most specific antibody for SLE?', 'Anti-Smith\n• Anti-dsDNA tracks lupus nephritis'],
+    ['Drug-induced lupus antibody and drugs?', 'Anti-histone\n• Hydralazine, procainamide, isoniazid'],
+    ['HLA-B27 diseases?', 'Ankylosing spondylitis, reactive arthritis, psoriatic arthritis, IBD arthritis'],
+    ['Older adult with shoulder and hip stiffness and high ESR?', 'Polymyalgia rheumatica\n• Watch for giant cell arteritis'],
+    ['Paget disease of bone labs?', '↑ ALP, normal calcium and phosphate\n• Hearing loss, thick bones'],
+    ['Surgical neck of humerus fracture → which nerve?', 'Axillary nerve (deltoid)'],
+    ['Midshaft humerus fracture → which nerve?', 'Radial nerve (wrist drop)'],
+    ['Duchenne muscular dystrophy?', 'X-linked dystrophin deletion, Gowers sign, calf pseudohypertrophy']
+  ],
+  'Derm': [
+    ['Most common skin cancer?', 'Basal cell carcinoma\n• Pearly papule, telangiectasias, rolled edges'],
+    ['Skin cancer with keratin pearls?', 'Squamous cell carcinoma'],
+    ['Most important prognostic factor in melanoma?', 'Depth of invasion (Breslow thickness)'],
+    ['Pemphigus vulgaris vs bullous pemphigoid?', 'Pemphigus: desmoglein, mouth involved, Nikolsky +\nPemphigoid: hemidesmosome, no mouth, Nikolsky −'],
+    ['Silvery plaques on extensor surfaces?', 'Psoriasis\n• Munro microabscesses, Auspitz sign'],
+    ['Dermatitis herpetiformis is linked to?', 'Celiac disease (IgA at dermal papillae)'],
+    ['Acanthosis nigricans suggests?', 'Insulin resistance (or gastric cancer if sudden)'],
+    ['Seborrheic keratosis appearing suddenly in large numbers?', 'Leser-Trélat sign → GI cancer'],
+    ['Target lesions after a drug or HSV?', 'Erythema multiforme'],
+    ['Stevens-Johnson vs TEN?', 'SJS: < 10% body surface\nTEN: > 30% body surface']
+  ],
+  'Immuno': [
+    ['No B cells, boys after 6 months?', 'Bruton agammaglobulinemia (BTK)'],
+    ['No thymus + hypocalcemia + heart defect?', 'DiGeorge syndrome (22q11 deletion)'],
+    ['Infections with catalase-positive organisms?', 'Chronic granulomatous disease (NADPH oxidase)\n• Abnormal dihydrorhodamine test'],
+    ['Delayed umbilical cord separation?', 'Leukocyte adhesion deficiency (CD18)'],
+    ['Anaphylaxis after a blood transfusion?', 'IgA deficiency'],
+    ['Eczema + thrombocytopenia + infections?', 'Wiskott-Aldrich syndrome (X-linked, WAS gene)'],
+    ['Type IV hypersensitivity examples?', 'PPD test, contact dermatitis, transplant rejection\n• T-cell mediated, delayed'],
+    ['Hyperacute transplant rejection?', 'Minutes; preformed antibodies (type II)'],
+    ['Cytokines that cause fever?', 'IL-1, IL-6, TNF-alpha'],
+    ['Cytokine that recruits neutrophils?', 'IL-8']
+  ],
+  'Micro': [
+    ['Toxins that inactivate EF-2?', 'Diphtheria toxin and Pseudomonas exotoxin A'],
+    ['Rice-water diarrhea mechanism?', 'Vibrio cholerae toxin ↑ cAMP'],
+    ['Descending flaccid paralysis after canned food or honey?', 'Botulism: blocks ACh release'],
+    ['Vancomycin mechanism and resistance?', 'Binds D-Ala-D-Ala\n• Resistance: D-Ala-D-Lac'],
+    ['Anti-TB drug that turns body fluids orange?', 'Rifampin (CYP450 inducer)'],
+    ['Isoniazid side effects?', 'Peripheral neuropathy (give B6), hepatitis, drug-induced lupus'],
+    ['Congenital CMV vs toxoplasmosis calcifications?', 'CMV: periventricular + hearing loss\nToxo: diffuse'],
+    ['HPV 16/18 oncogenes?', 'E6 inhibits p53, E7 inhibits Rb'],
+    ['Watery diarrhea in HIV, acid-fast oocysts?', 'Cryptosporidium'],
+    ['Linezolid + SSRI risk?', 'Serotonin syndrome']
+  ],
+  'Pharm': [
+    ['Zero-order elimination drugs?', 'Phenytoin, ethanol, high-dose aspirin\n• Constant amount per hour'],
+    ['Competitive vs noncompetitive antagonist?', 'Competitive: curve shifts right, same max effect\nNoncompetitive: lower max effect'],
+    ['Acetaminophen overdose antidote?', 'N-acetylcysteine'],
+    ['Beta-blocker overdose antidote?', 'Glucagon'],
+    ['TCA overdose: ECG sign and treatment?', 'Wide QRS → sodium bicarbonate'],
+    ['Methanol or ethylene glycol poisoning?', 'Fomepizole'],
+    ['Organophosphate poisoning treatment?', 'Atropine + pralidoxime'],
+    ['Common CYP450 inducers?', 'Rifampin, carbamazepine, phenytoin, phenobarbital, St John\'s wort, chronic alcohol'],
+    ['Common CYP450 inhibitors?', 'Macrolides, azoles, grapefruit, cimetidine, ritonavir, amiodarone'],
+    ['Steady state is reached after how many half-lives?', '4–5 half-lives']
+  ],
+  'Biochem': [
+    ['Rate-limiting enzyme of glycolysis?', 'PFK-1'],
+    ['Rate-limiting enzyme of cholesterol synthesis?', 'HMG-CoA reductase (statins block it)'],
+    ['Von Gierke disease?', 'Glucose-6-phosphatase deficiency\n• Severe fasting hypoglycemia, lactic acidosis, big liver'],
+    ['Pompe disease?', 'Acid maltase (lysosomal) deficiency\n• Cardiomegaly, hypotonia'],
+    ['Cherry-red spot with vs without hepatosplenomegaly?', 'With: Niemann-Pick (sphingomyelinase)\nWithout: Tay-Sachs (hexosaminidase A)'],
+    ['Crumpled tissue paper macrophages?', 'Gaucher disease (glucocerebrosidase)'],
+    ['Hereditary fructose intolerance enzyme?', 'Aldolase B\n• Hypoglycemia after fruit'],
+    ['Musty odor, fair skin, intellectual disability?', 'Phenylketonuria (phenylalanine hydroxylase)'],
+    ['Pyruvate dehydrogenase cofactors?', 'B1, B2, B3, B5, lipoic acid'],
+    ['Collagen synthesis step that needs vitamin C?', 'Hydroxylation of proline and lysine (in the RER)']
+  ],
+  'Gen Path': [
+    ['Reversible vs irreversible cell injury?', 'Reversible: swelling, blebs\nIrreversible: membrane damage, nuclear pyknosis/karyorrhexis/karyolysis'],
+    ['Necrosis type in the brain?', 'Liquefactive necrosis'],
+    ['Necrosis type in TB?', 'Caseous necrosis'],
+    ['Necrosis type in acute pancreatitis?', 'Fat necrosis (saponification)'],
+    ['Apoptosis: key enzymes and look?', 'Caspases; shrunken cell, dense nucleus, no inflammation'],
+    ['Dystrophic vs metastatic calcification?', 'Dystrophic: damaged tissue, normal calcium\nMetastatic: normal tissue, high calcium/phosphate'],
+    ['Neutrophil rolling vs tight adhesion molecules?', 'Rolling: selectins\nTight adhesion: integrins (CD18) + ICAM-1'],
+    ['Chemical mediators of pain?', 'Bradykinin, PGE2, substance P'],
+    ['Amyloid stain?', 'Congo red → apple-green birefringence under polarized light'],
+    ['Wound healing: type of collagen first vs later?', 'Type III first, replaced by type I']
+  ],
+  'Biostat': [
+    ['Sensitivity formula?', 'TP / (TP + FN)\n• High sensitivity rules OUT (SnNout)'],
+    ['Specificity formula?', 'TN / (TN + FP)\n• High specificity rules IN (SpPin)'],
+    ['What happens to PPV and NPV when prevalence rises?', 'PPV ↑, NPV ↓\n• Sensitivity and specificity do not change'],
+    ['NNT formula?', '1 / absolute risk reduction'],
+    ['Case-control study measure?', 'Odds ratio'],
+    ['Cohort study measure?', 'Relative risk'],
+    ['Type I error?', 'False positive (alpha)'],
+    ['Type II error?', 'False negative (beta); power = 1 − beta'],
+    ['Lead-time bias?', 'Survival looks longer only because the disease was found earlier'],
+    ['How to increase power?', 'Bigger sample size, bigger effect size, higher alpha']
+  ],
+  'Ethics': [
+    ['Who decides for an adult who has lost capacity?', 'Advance directive first, then the surrogate (usually spouse → adult children → parents → siblings)'],
+    ['Minor can consent without parents for?', 'Contraception, STI care, prenatal care, substance use treatment (varies by state)'],
+    ['Jehovah\'s Witness child needs an emergency transfusion?', 'Give the transfusion (best interest of the child)'],
+    ['Patient refuses a life-saving treatment with full capacity?', 'Respect the refusal after making sure they understand'],
+    ['When can confidentiality be broken?', 'Serious threat to others, reportable diseases, child/elder abuse, suicidal risk'],
+    ['Interpreter for a patient who speaks another language?', 'Use a professional interpreter, not family'],
+    ['Medical error that reached the patient?', 'Disclose it honestly to the patient'],
+    ['Gift from a patient?', 'Small gifts may be accepted; refuse large or cash gifts'],
+    ['Elements of informed consent?', 'Diagnosis, risks, benefits, alternatives (including no treatment), capacity, voluntary'],
+    ['Colleague appears impaired at work?', 'Report to the appropriate supervisor or authority']
+  ],
+  'Nutrition': [
+    ['Thiamine (B1) deficiency?', 'Wernicke-Korsakoff, beriberi (dry = neuropathy; wet = heart failure)'],
+    ['Niacin (B3) deficiency?', 'Pellagra: diarrhea, dementia, dermatitis\n• Hartnup disease, carcinoid syndrome'],
+    ['Vitamin C deficiency?', 'Scurvy: bleeding gums, perifollicular hemorrhage, poor wound healing'],
+    ['Vitamin A toxicity?', 'Pseudotumor cerebri, liver damage, teratogenic'],
+    ['Vitamin D deficiency in children vs adults?', 'Children: rickets\nAdults: osteomalacia'],
+    ['Vitamin K deficiency in newborns?', 'Hemorrhagic disease of the newborn → vitamin K at birth'],
+    ['Zinc deficiency?', 'Poor wound healing, loss of taste, alopecia, rash around mouth'],
+    ['B12 vs folate deficiency test?', 'Methylmalonic acid ↑ only in B12 deficiency\n• Homocysteine ↑ in both'],
+    ['Kwashiorkor vs marasmus?', 'Kwashiorkor: protein deficiency, edema, fatty liver\nMarasmus: calorie deficiency, wasting, no edema'],
+    ['Vitamin B6 deficiency causes?', 'Isoniazid; peripheral neuropathy, sideroblastic anemia, seizures']
+  ]
+}};
+
+function deckKey(){ const st = S.data && S.data.student; return typeof pbExamKey === 'function' ? pbExamKey(st && st.exam) : 'step1'; }
+function decksFor(){ return DECKS[deckKey()] || {}; }
+function deckStarted(){ return store.get('sp:deck:' + (AUTH.s || 'admin')) || []; }
+function deckCards(sys){ return (decksFor()[sys] || []).map(([f, b]) => ({id: hash('deck|' + sys + '|' + f), front: f, back: b, src: 'deck', tag: sys + ' deck', kind: 'deck'})); }
+
+const _buildCards6 = buildCards;
+buildCards = function (d){
+  const out = _buildCards6(d);
+  deckStarted().forEach(sys => deckCards(sys).forEach(c => out.push(c)));
+  return out;
+};
+function startDeck(sys){
+  const st = deckStarted(); if (!st.includes(sys)) { st.push(sys); store.set('sp:deck:' + (AUTH.s || 'admin'), st); }
+  const fs = flashState(), t = today();
+  S.tab = 'cards'; S.fcFilt = 'deck'; S.fcFiltWas = 'deck'; S.fcFlip = false; S.deckOpen = sys;
+  const due = deckCards(sys).filter(c => !fs[c.id] || fs[c.id].due <= t);
+  S.fcQueue = (due.length ? due : deckCards(sys)).map(c => c.id);
+}
+function deckGridHtml(){
+  const decks = decksFor(), names = Object.keys(decks);
+  if (!names.length) return `<div class="card"><h3>🃏 Ready-made decks</h3><div class="empty">Ready-made decks for your exam are coming soon.</div></div>`;
+  const fs = flashState(), started = deckStarted();
+  return `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🃏 Ready-made decks</h3><span class="small muted">${names.length} decks · ${names.reduce((a, n) => a + decks[n].length, 0)} cards from Dr. Karim</span></div>
+    <p class="small muted" style="margin:6px 0 12px">The highest-yield facts per system. Do a deck before that system's questions — cards you know come back less often.</p>
+    <div class="deckgrid">${names.map(n => { const cs = deckCards(n), m = cs.filter(c => fs[c.id] && fs[c.id].box >= 4).length, seen = cs.filter(c => fs[c.id]).length;
+      return `<button class="deck ${started.includes(n) ? 'on' : ''}" data-act="openDeck" data-sys="${esc(n)}"><span class="demo">${SYS_EMO[n] || '📘'}</span><b>${esc(n)}</b><span class="small muted">${cs.length} cards${seen ? ' · ' + m + ' mastered' : ''}</span>${seen ? `<i class="pbar"><i style="width:${Math.round(m / cs.length * 100)}%"></i></i>` : ''}</button>`; }).join('')}</div></div>`;
+}
+const _flashHtml6 = flashHtml;
+flashHtml = function (d){
+  let h = _flashHtml6(d).replace(/From session notes( · [^<]*? deck)/g, '🃏 Ready-made$1');
+  const filt = S.fcFilt || 'all';
+  const tabBtn = `<button data-act="fcFilt" data-f="deck" class="${filt === 'deck' ? 'on' : ''}">🃏 Ready-made</button>`;
+  if (h.includes('data-f="notes"')) h = h.replace(/(data-f="notes"[^>]*>[^<]*<\/button>)/, '$1' + tabBtn);
+  else return deckGridHtml() + h;
+  if (filt === 'deck') {
+    const cut = h.search(/<div class="(card )?fcwrap/);
+    const head = cut > -1 ? h.slice(0, cut) : h;
+    const q = S.fcQueue || [];
+    if (!q.length || !S.deckOpen) return head + deckGridHtml();
+    const back = `<div class="row" style="justify-content:space-between;margin:-4px 0 10px"><button class="linkbtn" data-act="deckBack">‹ All decks</button><b>${SYS_EMO[S.deckOpen] || '📘'} ${esc(S.deckOpen)} deck</b></div>`;
+    return head + back + h.slice(cut);
+  }
+  return h;
+};
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act="openDeck"],[data-act="deckBack"],[data-act="fcFilt"][data-f="deck"]'); if (!a) return;
+  e.preventDefault(); e.stopPropagation();
+  if (a.dataset.act === 'openDeck') { startDeck(a.dataset.sys); }
+  else { S.tab = 'cards'; S.fcFilt = 'deck'; S.fcFiltWas = 'deck'; S.deckOpen = null; S.fcQueue = []; }
+  renderStudent(); window.scrollTo(0, 0);
+}, true);
+
+/* plan items that say "Ready-made flashcards: X deck" get a button that opens it */
+const _itemHtml6 = itemHtml;
+itemHtml = function (x, opt, showDate){
+  let h = _itemHtml6(x, opt, showDate);
+  if (/flashcard|ready-made deck/i.test(x.text) && S.mode !== 'admin') {
+    const sys = systemsIn(x.text).filter(s => decksFor()[s]);
+    if (sys.length) h = h.replace(/(<\/div>\s*<div class="acts">)/, `<div class="reslinks deckl">${sys.map(s => `<button class="reschip" data-act="openDeck" data-sys="${esc(s)}">🃏 Open the ${esc(s)} deck</button>`).join('')}</div>$1`);
+  }
+  return h;
+};
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+.deckgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.deck{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;cursor:pointer;font:inherit;color:var(--ink);transition:.12s}
+.deck:hover{border-color:#a5b4fc;transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,91,219,.1)}
+.deck.on{background:linear-gradient(160deg,#f5f7ff,#fff);border-color:#c7d2fe}
+.deck .demo{font-size:24px}.deck .pbar{width:100%}
+</style>`);
+
+/* =====================================================================
+   WhatsApp Dr. Karim (students)
+   ===================================================================== */
+const TUTOR_WA = '201011339499';
+function waTutorUrl(extra){
+  const st = S.data && S.data.student, first = st ? String(st.name || '').split(/[\s(]/)[0] : '';
+  return 'https://wa.me/' + TUTOR_WA + '?text=' + encodeURIComponent('Hi Dr. Karim, it\'s ' + (first || 'your student') + ' 👋 ' + (extra || ''));
+}
+const WA_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2l-.5-.3z"/></svg>';
+const _renderStudent7 = renderStudent;
+renderStudent = function (){
+  _renderStudent7();
+  if (S.mode === 'admin' || !S.data) return;
+  if (!document.getElementById('waFab')) document.body.insertAdjacentHTML('beforeend', `<a id="waFab" target="_blank" rel="noopener" title="Message Dr. Karim on WhatsApp">${WA_SVG}<span>Message Dr. Karim</span></a>`);
+  const fab = document.getElementById('waFab'); fab.href = waTutorUrl();
+  const foot = document.querySelector('.side .sidefoot');
+  if (foot && !document.querySelector('.side .wanav')) foot.insertAdjacentHTML('beforebegin', `<a class="nav wanav" href="${esc(waTutorUrl())}" target="_blank" rel="noopener">${WA_SVG}<span>WhatsApp Dr. Karim</span></a>`);
+  if (S.tab === 'problems') { const p = document.getElementById('pane'); if (p && !p.querySelector('.wacard')) p.insertAdjacentHTML('afterbegin', `<div class="card wacard"><div class="row" style="gap:14px;flex-wrap:nowrap"><span class="waico">${WA_SVG}</span><div class="grow"><b>Need a quick answer?</b><div class="small muted">Message Dr. Karim directly on WhatsApp. For a question about a specific Q, you can also post it below with a screenshot.</div></div><a class="btn wabtn" href="${esc(waTutorUrl())}" target="_blank" rel="noopener">Open WhatsApp</a></div></div>`); }
+};
+document.head.insertAdjacentHTML('beforeend', `<style>
+#waFab{position:fixed;right:20px;bottom:20px;z-index:30;display:flex;align-items:center;gap:8px;background:#25d366;color:#fff;border-radius:999px;padding:12px 18px 12px 14px;font:700 14px var(--font);box-shadow:0 8px 24px rgba(37,211,102,.35);text-decoration:none;transition:.15s}
+#waFab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(37,211,102,.45)}
+.wanav svg{width:20px;height:20px;color:#25d366}
+.wacard{border-color:#bbf7d0;background:linear-gradient(135deg,#f0fdf4,#fff)}
+.waico{width:44px;height:44px;border-radius:12px;background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.wabtn{background:#25d366;border-color:#25d366;color:#fff;flex:none}
+@media (max-width:860px){#waFab{bottom:82px;right:14px;padding:13px}#waFab span{display:none}}
+</style>`);
+
 </script>
 </body>
 </html>
