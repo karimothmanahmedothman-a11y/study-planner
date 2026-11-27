@@ -693,236 +693,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 /* =====================================================================
    v16: ready-made Step 1 flashcard decks (Dr. Karim's high-yield set)
    ===================================================================== */
-const DECKS = {step1: {
-  'Cardio': [
-    ['Murmur that gets LOUDER with standing or Valsalva (↓ preload)?', 'HCM (and MVP: click comes earlier)\nAll other murmurs get softer'],
-    ['Crescendo-decrescendo systolic murmur at the right upper sternal border → carotids?', 'Aortic stenosis\n• Syncope, angina, dyspnea on exertion'],
-    ['S3 vs S4: which means a stiff ventricle?', 'S4 = stiff ventricle (concentric hypertrophy, aortic stenosis, chronic HTN)\nS3 = volume overload (dilated heart, MR)'],
-    ['Drugs that lower mortality in HFrEF?', 'ACE inhibitor/ARB (or ARNI), beta blocker, spironolactone, SGLT2 inhibitor'],
-    ['Antiarrhythmic class that causes torsades and pulmonary fibrosis?', 'Class III: amiodarone\n• Also thyroid and liver toxicity, blue-gray skin'],
-    ['Digoxin toxicity: signs and what makes it worse?', 'Yellow vision, nausea, arrhythmias\n• Worse with hypokalemia\n• Antidote: anti-digoxin Fab'],
-    ['Fever + new murmur in an IV drug user: valve and organism?', 'Tricuspid valve, Staph aureus\n• Septic pulmonary emboli'],
-    ['Pericarditis ECG?', 'Diffuse ST elevation + PR depression'],
-    ['Beck triad?', 'Cardiac tamponade: hypotension, distended neck veins, muffled heart sounds\n• Pulsus paradoxus'],
-    ['Most common cause of death in the first days after MI vs at 3–14 days?', 'First days: arrhythmia (VF)\n3–14 days: free wall rupture (macrophages, weak granulation tissue)']
-  ],
-  'Renal': [
-    ['Prerenal AKI vs ATN: BUN/Cr and FENa?', 'Prerenal: BUN/Cr > 20, FENa < 1%\nATN: BUN/Cr < 15, FENa > 2%, muddy brown casts'],
-    ['Which arteriole does angiotensin II constrict?', 'Efferent arteriole → keeps GFR up\n• ACE inhibitors drop GFR in bilateral renal artery stenosis'],
-    ['Where do loop diuretics act and what do they cause?', 'Thick ascending limb (NKCC2)\n• Hypokalemia, contraction alkalosis, ototoxicity, hypocalcemia'],
-    ['High anion gap metabolic acidosis causes?', 'MUDPILES: methanol, uremia, DKA, propylene glycol, iron/isoniazid, lactic acidosis, ethylene glycol, salicylates'],
-    ['Winter formula?', 'Expected pCO2 = 1.5 × HCO3 + 8 ± 2'],
-    ['Nephrotic syndrome in a child?', 'Minimal change disease\n• Podocyte effacement on EM, responds to steroids'],
-    ['Nephritic syndrome 2–3 weeks after a strep throat infection?', 'Post-streptococcal glomerulonephritis\n• Low C3, subepithelial humps'],
-    ['RBC casts mean?', 'Glomerulonephritis (nephritic syndrome)'],
-    ['WBC casts mean?', 'Pyelonephritis (or acute interstitial nephritis)'],
-    ['Renal cell carcinoma: cell of origin and paraneoplastic effects?', 'Proximal tubule cells\n• EPO (polycythemia), PTHrP, renin, ACTH\n• Linked to VHL (chromosome 3)']
-  ],
-  'Pulm': [
-    ['Obstructive vs restrictive: FEV1/FVC and TLC?', 'Obstructive: FEV1/FVC < 0.7, ↑ TLC\nRestrictive: FEV1/FVC normal or ↑, ↓ TLC'],
-    ['Hypoxemia that does NOT correct with 100% oxygen?', 'Shunt (V/Q = 0)'],
-    ['Panacinar emphysema in the lower lobes in a young nonsmoker?', 'Alpha-1 antitrypsin deficiency\n• May also cause liver cirrhosis'],
-    ['Lung cancer with SIADH, ectopic ACTH and Lambert-Eaton?', 'Small cell carcinoma (central, smokers)'],
-    ['Lung cancer with hypercalcemia?', 'Squamous cell carcinoma (PTHrP)'],
-    ['Most common lung cancer in nonsmokers?', 'Adenocarcinoma (peripheral)'],
-    ['Pneumonia with hyponatremia and diarrhea?', 'Legionella\n• Urine antigen test'],
-    ['Bilateral hilar lymphadenopathy + hypercalcemia + noncaseating granulomas?', 'Sarcoidosis\n• 1-alpha-hydroxylase in macrophages'],
-    ['Asbestosis: lobes and main cancer risk?', 'Lower lobes, calcified pleural plaques\n• Bronchogenic carcinoma is more common than mesothelioma'],
-    ['What shifts the O2 curve to the right?', '↑ CO2, ↑ H+ (acid), ↑ temperature, ↑ 2,3-BPG, exercise']
-  ],
-  'GI': [
-    ['Crohn disease vs ulcerative colitis?', 'Crohn: transmural, skip lesions, terminal ileum, granulomas, fistulas\nUC: mucosal, continuous from rectum, crypt abscesses, PSC'],
-    ['AST:ALT > 2?', 'Alcoholic liver disease'],
-    ['UC + beaded bile ducts + p-ANCA?', 'Primary sclerosing cholangitis\n• ↑ risk of cholangiocarcinoma'],
-    ['Middle-aged woman, itching, anti-mitochondrial antibodies?', 'Primary biliary cholangitis'],
-    ['Most specific enzyme for acute pancreatitis?', 'Lipase'],
-    ['Painless jaundice + palpable gallbladder?', 'Pancreatic head adenocarcinoma (Courvoisier sign)\n• CA 19-9'],
-    ['Celiac disease: antibody and biopsy?', 'Anti-tTG IgA (check total IgA)\n• Villous atrophy, crypt hyperplasia\n• Dermatitis herpetiformis'],
-    ['Strep gallolyticus (bovis) endocarditis → look for?', 'Colon cancer'],
-    ['Gilbert syndrome?', 'Mild unconjugated hyperbilirubinemia with fasting or stress; benign'],
-    ['Wilson disease findings?', 'Low ceruloplasmin, Kayser-Fleischer rings, liver disease + movement/psych problems\n• ATP7B, chromosome 13']
-  ],
-  'Endo': [
-    ['Hypertension + low K + LOW renin?', 'Primary hyperaldosteronism (Conn)'],
-    ['Cushing: ACTH high and suppresses with high-dose dexamethasone?', 'Pituitary adenoma (Cushing disease)\n• Ectopic ACTH does not suppress'],
-    ['Pheochromocytoma: which blocker first?', 'Alpha blocker (phenoxybenzamine) BEFORE any beta blocker'],
-    ['Graves vs Hashimoto antibodies?', 'Graves: TSH-receptor stimulating antibodies\nHashimoto: anti-TPO'],
-    ['Thyroid cancer with psammoma bodies and Orphan Annie nuclei?', 'Papillary carcinoma (most common)'],
-    ['Thyroid cancer with calcitonin and amyloid?', 'Medullary carcinoma (C cells)\n• MEN 2A/2B, RET'],
-    ['21-hydroxylase deficiency?', '↓ cortisol, ↓ aldosterone, ↑ androgens\n• Salt wasting, ↑ 17-OH progesterone'],
-    ['Diabetes drug that causes fluid retention (avoid in heart failure)?', 'Pioglitazone (PPAR-gamma agonist)'],
-    ['SGLT2 inhibitor side effects?', 'Genital yeast infections, UTIs, euglycemic DKA'],
-    ['Central vs nephrogenic DI?', 'Central: urine concentrates after desmopressin\nNephrogenic: no response (lithium, hypercalcemia)']
-  ],
-  'Repro': [
-    ['Tall male, small firm testes, gynecomastia, ↑ FSH/LH?', 'Klinefelter syndrome (47,XXY)'],
-    ['Short stature, webbed neck, streak ovaries, coarctation?', 'Turner syndrome (45,X)\n• Bicuspid aortic valve'],
-    ['Testicular tumor with ↑ AFP and Schiller-Duval bodies?', 'Yolk sac tumor'],
-    ['Testicular tumor with ↑ hCG?', 'Choriocarcinoma'],
-    ['PCOS: hormones and cancer risk?', '↑ LH:FSH, ↑ androgens, insulin resistance\n• ↑ endometrial cancer risk'],
-    ['Why can a molar pregnancy cause hyperthyroidism?', 'hCG shares the alpha subunit with TSH'],
-    ['Most common ovarian tumor in women 20–30?', 'Mature cystic teratoma (dermoid cyst)'],
-    ['Ovarian tumor with Call-Exner bodies?', 'Granulosa cell tumor (makes estrogen)'],
-    ['Breast cancer with peau d\'orange?', 'Inflammatory breast cancer (dermal lymphatics blocked)'],
-    ['Preeclampsia definition?', 'New hypertension after 20 weeks + proteinuria or end-organ damage']
-  ],
-  'Neuro': [
-    ['Upper vs lower motor neuron signs?', 'UMN: spasticity, hyperreflexia, Babinski\nLMN: weakness, atrophy, fasciculations, hyporeflexia'],
-    ['Epidural vs subdural hematoma?', 'Epidural: middle meningeal artery, lens-shaped, lucid interval\nSubdural: bridging veins, crescent-shaped'],
-    ['Worst headache of my life?', 'Subarachnoid hemorrhage (berry aneurysm)\n• Nimodipine prevents vasospasm'],
-    ['Brown-Séquard syndrome?', 'Same side: motor + vibration/proprioception loss\nOpposite side: pain and temperature loss'],
-    ['Cape-like loss of pain and temperature?', 'Syringomyelia (Chiari I malformation)'],
-    ['Dorsal column + lateral corticospinal tract damage?', 'Subacute combined degeneration (B12 deficiency)'],
-    ['Lateral medullary (Wallenberg) syndrome artery?', 'PICA\n• Dysphagia, hoarseness, ipsilateral Horner, crossed pain/temperature loss'],
-    ['Huntington disease?', 'CAG repeats (chromosome 4), caudate atrophy, ↑ dopamine, ↓ GABA'],
-    ['Startle myoclonus + rapid dementia + 14-3-3 protein?', 'Creutzfeldt-Jakob disease (prion)'],
-    ['Neurofibromatosis type 2?', 'Bilateral vestibular schwannomas, NF2 on chromosome 22']
-  ],
-  'Psych': [
-    ['Lithium side effects?', 'Nephrogenic DI, hypothyroidism, tremor\n• Ebstein anomaly in pregnancy'],
-    ['Clozapine: must-monitor side effect?', 'Agranulocytosis (check neutrophil counts)\n• Also seizures, myocarditis'],
-    ['Fever, rigidity, high CK after an antipsychotic?', 'Neuroleptic malignant syndrome → dantrolene or bromocriptine'],
-    ['Clonus, hyperreflexia, hyperthermia after SSRI + MAOI?', 'Serotonin syndrome → cyproheptadine'],
-    ['Antidepressant to avoid in bulimia?', 'Bupropion (lowers seizure threshold)'],
-    ['Order of antipsychotic movement side effects?', 'Acute dystonia (hours) → akathisia (days) → parkinsonism (weeks) → tardive dyskinesia (months)'],
-    ['Withdrawal that can cause seizures?', 'Alcohol and benzodiazepines\n• Opioid withdrawal does not'],
-    ['Opioid withdrawal signs?', 'Yawning, dilated pupils, piloerection, diarrhea, rhinorrhea'],
-    ['Wernicke encephalopathy triad?', 'Confusion, ophthalmoplegia, ataxia\n• Give thiamine before glucose'],
-    ['First-line treatment for most anxiety and depressive disorders?', 'SSRIs + psychotherapy (CBT)']
-  ],
-  'Heme/Onc': [
-    ['Microcytic anemia with normal ferritin and target cells?', 'Thalassemia trait'],
-    ['PT vs PTT: which pathway and which drug?', 'PT: extrinsic (factor VII), warfarin\nPTT: intrinsic, heparin'],
-    ['DIC labs?', '↑ PT, ↑ PTT, ↓ fibrinogen, ↑ D-dimer, ↓ platelets, schistocytes'],
-    ['TTP pentad?', 'Fever, hemolytic anemia with schistocytes, low platelets, kidney injury, confusion\n• Low ADAMTS13'],
-    ['Platelets drop 5–10 days after starting heparin?', 'Heparin-induced thrombocytopenia → stop heparin, start argatroban'],
-    ['Reed-Sternberg cells?', 'Hodgkin lymphoma (CD15+, CD30+)'],
-    ['t(9;22)?', 'CML: BCR-ABL → imatinib'],
-    ['t(15;17)?', 'APL (AML M3) → all-trans retinoic acid\n• High DIC risk'],
-    ['t(8;14)?', 'Burkitt lymphoma: c-MYC, starry sky'],
-    ['Multiple myeloma: CRAB?', 'HyperCalcemia, Renal failure, Anemia, Bone lytic lesions\n• M spike, rouleaux']
-  ],
-  'MSK': [
-    ['Gout vs pseudogout crystals?', 'Gout: needle-shaped, negatively birefringent\nPseudogout: rhomboid, positively birefringent'],
-    ['Rheumatoid vs osteoarthritis joints?', 'RA: MCP + PIP, morning stiffness > 1 h, anti-CCP\nOA: DIP, worse with use'],
-    ['Most specific antibody for SLE?', 'Anti-Smith\n• Anti-dsDNA tracks lupus nephritis'],
-    ['Drug-induced lupus antibody and drugs?', 'Anti-histone\n• Hydralazine, procainamide, isoniazid'],
-    ['HLA-B27 diseases?', 'Ankylosing spondylitis, reactive arthritis, psoriatic arthritis, IBD arthritis'],
-    ['Older adult with shoulder and hip stiffness and high ESR?', 'Polymyalgia rheumatica\n• Watch for giant cell arteritis'],
-    ['Paget disease of bone labs?', '↑ ALP, normal calcium and phosphate\n• Hearing loss, thick bones'],
-    ['Surgical neck of humerus fracture → which nerve?', 'Axillary nerve (deltoid)'],
-    ['Midshaft humerus fracture → which nerve?', 'Radial nerve (wrist drop)'],
-    ['Duchenne muscular dystrophy?', 'X-linked dystrophin deletion, Gowers sign, calf pseudohypertrophy']
-  ],
-  'Derm': [
-    ['Most common skin cancer?', 'Basal cell carcinoma\n• Pearly papule, telangiectasias, rolled edges'],
-    ['Skin cancer with keratin pearls?', 'Squamous cell carcinoma'],
-    ['Most important prognostic factor in melanoma?', 'Depth of invasion (Breslow thickness)'],
-    ['Pemphigus vulgaris vs bullous pemphigoid?', 'Pemphigus: desmoglein, mouth involved, Nikolsky +\nPemphigoid: hemidesmosome, no mouth, Nikolsky −'],
-    ['Silvery plaques on extensor surfaces?', 'Psoriasis\n• Munro microabscesses, Auspitz sign'],
-    ['Dermatitis herpetiformis is linked to?', 'Celiac disease (IgA at dermal papillae)'],
-    ['Acanthosis nigricans suggests?', 'Insulin resistance (or gastric cancer if sudden)'],
-    ['Seborrheic keratosis appearing suddenly in large numbers?', 'Leser-Trélat sign → GI cancer'],
-    ['Target lesions after a drug or HSV?', 'Erythema multiforme'],
-    ['Stevens-Johnson vs TEN?', 'SJS: < 10% body surface\nTEN: > 30% body surface']
-  ],
-  'Immuno': [
-    ['No B cells, boys after 6 months?', 'Bruton agammaglobulinemia (BTK)'],
-    ['No thymus + hypocalcemia + heart defect?', 'DiGeorge syndrome (22q11 deletion)'],
-    ['Infections with catalase-positive organisms?', 'Chronic granulomatous disease (NADPH oxidase)\n• Abnormal dihydrorhodamine test'],
-    ['Delayed umbilical cord separation?', 'Leukocyte adhesion deficiency (CD18)'],
-    ['Anaphylaxis after a blood transfusion?', 'IgA deficiency'],
-    ['Eczema + thrombocytopenia + infections?', 'Wiskott-Aldrich syndrome (X-linked, WAS gene)'],
-    ['Type IV hypersensitivity examples?', 'PPD test, contact dermatitis, transplant rejection\n• T-cell mediated, delayed'],
-    ['Hyperacute transplant rejection?', 'Minutes; preformed antibodies (type II)'],
-    ['Cytokines that cause fever?', 'IL-1, IL-6, TNF-alpha'],
-    ['Cytokine that recruits neutrophils?', 'IL-8']
-  ],
-  'Micro': [
-    ['Toxins that inactivate EF-2?', 'Diphtheria toxin and Pseudomonas exotoxin A'],
-    ['Rice-water diarrhea mechanism?', 'Vibrio cholerae toxin ↑ cAMP'],
-    ['Descending flaccid paralysis after canned food or honey?', 'Botulism: blocks ACh release'],
-    ['Vancomycin mechanism and resistance?', 'Binds D-Ala-D-Ala\n• Resistance: D-Ala-D-Lac'],
-    ['Anti-TB drug that turns body fluids orange?', 'Rifampin (CYP450 inducer)'],
-    ['Isoniazid side effects?', 'Peripheral neuropathy (give B6), hepatitis, drug-induced lupus'],
-    ['Congenital CMV vs toxoplasmosis calcifications?', 'CMV: periventricular + hearing loss\nToxo: diffuse'],
-    ['HPV 16/18 oncogenes?', 'E6 inhibits p53, E7 inhibits Rb'],
-    ['Watery diarrhea in HIV, acid-fast oocysts?', 'Cryptosporidium'],
-    ['Linezolid + SSRI risk?', 'Serotonin syndrome']
-  ],
-  'Pharm': [
-    ['Zero-order elimination drugs?', 'Phenytoin, ethanol, high-dose aspirin\n• Constant amount per hour'],
-    ['Competitive vs noncompetitive antagonist?', 'Competitive: curve shifts right, same max effect\nNoncompetitive: lower max effect'],
-    ['Acetaminophen overdose antidote?', 'N-acetylcysteine'],
-    ['Beta-blocker overdose antidote?', 'Glucagon'],
-    ['TCA overdose: ECG sign and treatment?', 'Wide QRS → sodium bicarbonate'],
-    ['Methanol or ethylene glycol poisoning?', 'Fomepizole'],
-    ['Organophosphate poisoning treatment?', 'Atropine + pralidoxime'],
-    ['Common CYP450 inducers?', 'Rifampin, carbamazepine, phenytoin, phenobarbital, St John\'s wort, chronic alcohol'],
-    ['Common CYP450 inhibitors?', 'Macrolides, azoles, grapefruit, cimetidine, ritonavir, amiodarone'],
-    ['Steady state is reached after how many half-lives?', '4–5 half-lives']
-  ],
-  'Biochem': [
-    ['Rate-limiting enzyme of glycolysis?', 'PFK-1'],
-    ['Rate-limiting enzyme of cholesterol synthesis?', 'HMG-CoA reductase (statins block it)'],
-    ['Von Gierke disease?', 'Glucose-6-phosphatase deficiency\n• Severe fasting hypoglycemia, lactic acidosis, big liver'],
-    ['Pompe disease?', 'Acid maltase (lysosomal) deficiency\n• Cardiomegaly, hypotonia'],
-    ['Cherry-red spot with vs without hepatosplenomegaly?', 'With: Niemann-Pick (sphingomyelinase)\nWithout: Tay-Sachs (hexosaminidase A)'],
-    ['Crumpled tissue paper macrophages?', 'Gaucher disease (glucocerebrosidase)'],
-    ['Hereditary fructose intolerance enzyme?', 'Aldolase B\n• Hypoglycemia after fruit'],
-    ['Musty odor, fair skin, intellectual disability?', 'Phenylketonuria (phenylalanine hydroxylase)'],
-    ['Pyruvate dehydrogenase cofactors?', 'B1, B2, B3, B5, lipoic acid'],
-    ['Collagen synthesis step that needs vitamin C?', 'Hydroxylation of proline and lysine (in the RER)']
-  ],
-  'Gen Path': [
-    ['Reversible vs irreversible cell injury?', 'Reversible: swelling, blebs\nIrreversible: membrane damage, nuclear pyknosis/karyorrhexis/karyolysis'],
-    ['Necrosis type in the brain?', 'Liquefactive necrosis'],
-    ['Necrosis type in TB?', 'Caseous necrosis'],
-    ['Necrosis type in acute pancreatitis?', 'Fat necrosis (saponification)'],
-    ['Apoptosis: key enzymes and look?', 'Caspases; shrunken cell, dense nucleus, no inflammation'],
-    ['Dystrophic vs metastatic calcification?', 'Dystrophic: damaged tissue, normal calcium\nMetastatic: normal tissue, high calcium/phosphate'],
-    ['Neutrophil rolling vs tight adhesion molecules?', 'Rolling: selectins\nTight adhesion: integrins (CD18) + ICAM-1'],
-    ['Chemical mediators of pain?', 'Bradykinin, PGE2, substance P'],
-    ['Amyloid stain?', 'Congo red → apple-green birefringence under polarized light'],
-    ['Wound healing: type of collagen first vs later?', 'Type III first, replaced by type I']
-  ],
-  'Biostat': [
-    ['Sensitivity formula?', 'TP / (TP + FN)\n• High sensitivity rules OUT (SnNout)'],
-    ['Specificity formula?', 'TN / (TN + FP)\n• High specificity rules IN (SpPin)'],
-    ['What happens to PPV and NPV when prevalence rises?', 'PPV ↑, NPV ↓\n• Sensitivity and specificity do not change'],
-    ['NNT formula?', '1 / absolute risk reduction'],
-    ['Case-control study measure?', 'Odds ratio'],
-    ['Cohort study measure?', 'Relative risk'],
-    ['Type I error?', 'False positive (alpha)'],
-    ['Type II error?', 'False negative (beta); power = 1 − beta'],
-    ['Lead-time bias?', 'Survival looks longer only because the disease was found earlier'],
-    ['How to increase power?', 'Bigger sample size, bigger effect size, higher alpha']
-  ],
-  'Ethics': [
-    ['Who decides for an adult who has lost capacity?', 'Advance directive first, then the surrogate (usually spouse → adult children → parents → siblings)'],
-    ['Minor can consent without parents for?', 'Contraception, STI care, prenatal care, substance use treatment (varies by state)'],
-    ['Jehovah\'s Witness child needs an emergency transfusion?', 'Give the transfusion (best interest of the child)'],
-    ['Patient refuses a life-saving treatment with full capacity?', 'Respect the refusal after making sure they understand'],
-    ['When can confidentiality be broken?', 'Serious threat to others, reportable diseases, child/elder abuse, suicidal risk'],
-    ['Interpreter for a patient who speaks another language?', 'Use a professional interpreter, not family'],
-    ['Medical error that reached the patient?', 'Disclose it honestly to the patient'],
-    ['Gift from a patient?', 'Small gifts may be accepted; refuse large or cash gifts'],
-    ['Elements of informed consent?', 'Diagnosis, risks, benefits, alternatives (including no treatment), capacity, voluntary'],
-    ['Colleague appears impaired at work?', 'Report to the appropriate supervisor or authority']
-  ],
-  'Nutrition': [
-    ['Thiamine (B1) deficiency?', 'Wernicke-Korsakoff, beriberi (dry = neuropathy; wet = heart failure)'],
-    ['Niacin (B3) deficiency?', 'Pellagra: diarrhea, dementia, dermatitis\n• Hartnup disease, carcinoid syndrome'],
-    ['Vitamin C deficiency?', 'Scurvy: bleeding gums, perifollicular hemorrhage, poor wound healing'],
-    ['Vitamin A toxicity?', 'Pseudotumor cerebri, liver damage, teratogenic'],
-    ['Vitamin D deficiency in children vs adults?', 'Children: rickets\nAdults: osteomalacia'],
-    ['Vitamin K deficiency in newborns?', 'Hemorrhagic disease of the newborn → vitamin K at birth'],
-    ['Zinc deficiency?', 'Poor wound healing, loss of taste, alopecia, rash around mouth'],
-    ['B12 vs folate deficiency test?', 'Methylmalonic acid ↑ only in B12 deficiency\n• Homocysteine ↑ in both'],
-    ['Kwashiorkor vs marasmus?', 'Kwashiorkor: protein deficiency, edema, fatty liver\nMarasmus: calorie deficiency, wasting, no edema'],
-    ['Vitamin B6 deficiency causes?', 'Isoniazid; peripheral neuropathy, sideroblastic anemia, seizures']
-  ]
-}};
+const DECKS = {step1: {}};
 
 function deckKey(){ const st = S.data && S.data.student; return typeof pbExamKey === 'function' ? pbExamKey(st && st.exam) : 'step1'; }
 function decksFor(){ return DECKS[deckKey()] || {}; }
@@ -1035,7 +806,7 @@ const _starterStep1 = DECKS.step1;
 DECKS.step1 = {};
 function ankiLoad(){
   if (ankiLoad.p) return ankiLoad.p;
-  ankiLoad.p = fetch(ANKI_BASE + 'step1.json').then(r => r.json()).then(j => {
+  ankiLoad.p = ankiFetch().then(j => {
     ANKI = j; DECKS.step1 = j.step1;
     if (S.mode !== 'admin' && S.data) { if (S.deckOpen) startDeck(S.deckOpen); renderStudent(); }
   }).catch(() => { DECKS.step1 = _starterStep1; ankiLoad.p = null; if (S.mode !== 'admin' && S.data) renderStudent(); });
@@ -1089,6 +860,161 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .akans{font-size:19px;font-weight:800;color:#2f4fd6;margin:4px 0 10px}
 .akx{font-size:14.5px;line-height:1.55;color:var(--ink)}.akx p{margin:0 0 6px}.akx ul{margin:0 0 8px;padding-left:20px}.akx li{margin:2px 0}
 .akimg{display:block;max-width:100%;max-height:420px;margin:12px auto 0;border-radius:12px;border:1px solid var(--line)}
+</style>`);
+
+
+/* =====================================================================
+   v17: decks come from the server (private), demo mode for the webinar link.
+   Demo = Students tab "demo" column TRUE. The server only ever sends 20 cards
+   per deck and HY file titles (no links) to a demo link, and saves nothing.
+   ===================================================================== */
+async function ankiFetch(){
+  if (S.mode !== 'student' || !AUTH.s) throw new Error('no decks here');
+  let c = null; try { c = JSON.parse(localStorage.getItem('sp:decks1') || 'null'); } catch (e) {}
+  // plain fetch (not call()): a pending deck download must not hold back the first 'me' render
+  const res = await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'decks', auth: AUTH, payload: {v: (c && c.v) || ''}}),
+    headers: {'Content-Type': 'text/plain;charset=utf-8'}, credentials: 'omit', redirect: 'follow'});
+  const j = await res.json(); if (!j.ok) throw new Error(j.error || 'decks');
+  const r = j.data;
+  if (r.same && c) return c;
+  try { if (!r.demo && r.v) localStorage.setItem('sp:decks1', JSON.stringify(r)); else localStorage.removeItem('sp:decks1'); } catch (e) {}
+  return r;
+}
+function isDemoMode(){ return S.mode === 'student' && (!!(S.data && S.data.student && S.data.student.demo) || !!(typeof ANKI !== 'undefined' && ANKI && ANKI.demo)); }
+function demoTotal(sys){ return (ANKI && ANKI.totals && ANKI.totals[sys]) || (decksFor()[sys] || []).length; }
+let _demoToastAt = 0;
+function demoToast(msg){ if (Date.now() - _demoToastAt < 3500) return; _demoToastAt = Date.now(); toast(msg || '👀 Demo plan — click around freely, nothing is saved'); }
+function waTo(text){ window.open('https://wa.me/' + TUTOR_WA + '?text=' + encodeURIComponent(text), '_blank', 'noopener'); }
+
+/* ---------- view-only: nothing is sent to be saved ---------- */
+const DEMO_READ = {me: 1, slots: 1, decks: 1};
+const DEMO_BLOCK = {keepUp: 1, catchUp: 1, pullItems: 1, setExamDate: 1, book: 1, cancelBooking: 1, addProblem: 1};
+const _callDemo = call;
+call = async function (action, payload){
+  if (isDemoMode() && !DEMO_READ[action]) {
+    demoToast(DEMO_BLOCK[action] ? '👀 Demo plan — this works in a real plan; nothing is changed here' : null);
+    if (DEMO_BLOCK[action]) throw new Error('demo');
+    return Object.assign({id: 'demo' + Math.random().toString(36).slice(2, 10), ok: true, demo: true, date: today()}, payload || {});
+  }
+  return _callDemo(action, payload);
+};
+const _saveCacheDemo = saveCache;
+saveCache = function (){ if (isDemoMode()) return; _saveCacheDemo(); };
+function demoReset(){
+  if (S._demoReset) return; S._demoReset = true;
+  ['sp:s:', 'sp:fc:', 'sp:deck:'].forEach(k => { try { localStorage.removeItem(k + AUTH.s); } catch (e) {} });
+}
+
+/* ---------- locked HY files & videos ---------- */
+const LOCK_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>';
+const PKG_LINE = 'HY file links and the crash course come with the Crash Course or Platinum package';
+function lockedResHtml(list){
+  const groups = {};
+  list.forEach(r => { const g = r.system || 'General'; (groups[g] = groups[g] || []).push(r); });
+  const order = Object.keys(groups).sort((a, b) => a === 'General' ? -1 : b === 'General' ? 1 : a.localeCompare(b));
+  const nS = list.filter(r => r.kind === 'slides').length, nV = list.filter(r => r.kind === 'video').length;
+  return `<div class="card reshero">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px">
+        <div><h2 style="margin:0">📂 HY files & videos</h2><p class="small muted" style="margin:6px 0 0">The Match Guy high-yield slides 🖥️ and crash-course videos 🎬, by system.</p></div>
+        <div class="resnums"><span><b>${nS}</b>🖥️ slides</span><span><b>${nV}</b>🎬 videos</span></div>
+      </div>
+      <div class="lkbanner"><span class="lkic">${LOCK_SVG}</span><div><b>Available with tutoring</b><div class="small">${PKG_LINE}.</div></div><a class="btn lkwa" href="https://wa.me/${TUTOR_WA}?text=${encodeURIComponent('Hi Dr. Karim, I saw the planner demo and I\'d like to ask about the Crash Course / Platinum package.')}" target="_blank" rel="noopener">${WA_SVG} Ask Dr. Karim</a></div>
+    </div>
+    <div class="lkgrid">${order.map(g => { const si = sysInfo(g); return `<div class="lksys"><div class="rch"><span class="remo">${g === 'General' ? '⭐' : si.emo}</span><b>${esc(g)}</b></div>
+      ${groups[g].map(r => `<div class="lkrow" aria-disabled="true"><div class="lkthumb ${r.kind === 'video' ? 'vid' : ''}"><i></i><i></i><i></i><span class="lkpad">${LOCK_SVG}</span></div><div class="grow"><b>${r.kind === 'video' ? '🎬' : '🖥️'} ${esc(r.title)}</b><div class="small muted">${esc(g)} · ${r.kind === 'video' ? 'Crash-course video' : 'HY slides'}</div><div class="lktag">${LOCK_SVG} Available with tutoring</div></div></div>`).join('')}
+    </div>`; }).join('')}</div>`;
+}
+const _resourcesHtmlDemo = resourcesHtml;
+resourcesHtml = function (list, admin){ return (!admin && isDemoMode()) ? lockedResHtml(list || []) : _resourcesHtmlDemo(list, admin); };
+const _resLinksDemo = resLinksHtml;
+resLinksHtml = function (x){
+  if (!isDemoMode()) return _resLinksDemo(x);
+  const t = String(x.text || ''); const s = /slides|hy files|handout/i.test(t), v = /crash course|video|bootcamp|lecture/i.test(t);
+  if (!s && !v) return '';
+  const systems = systemsIn(t), picks = ((S.data && S.data.resources) || []).filter(r => systems.includes(r.system) && ((s && r.kind === 'slides') || (v && r.kind === 'video')));
+  if (!picks.length) return '';
+  return `<div class="reslinks">${picks.slice(0, 4).map(r => `<span class="reschip lkchip" title="Available with tutoring">${LOCK_SVG} ${esc(r.title)}</span>`).join('')}</div>`;
+};
+
+/* ---------- decks: 20 free cards per system ---------- */
+const _deckGridDemo = deckGridHtml;
+deckGridHtml = function (){
+  if (!isDemoMode() || !ANKI || !ANKI.demo) return _deckGridDemo();
+  const decks = decksFor(), names = Object.keys(decks), fs = flashState(), started = deckStarted();
+  const total = names.reduce((a, n) => a + demoTotal(n), 0), free = names.reduce((a, n) => a + decks[n].length, 0);
+  return `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🃏 Ready-made decks</h3><span class="small muted">${names.length} decks · ${total.toLocaleString()} cards · Dr. Karim's Anki</span></div>
+    <p class="small muted" style="margin:6px 0 12px">A short case, the answer, and the high-yield explanation. This demo opens ${free} free cards (${ANKI.max || 20} per system).</p>
+    <div class="deckgrid">${names.map(n => { const cs = deckCards(n), m = cs.filter(c => fs[c.id] && fs[c.id].box >= 4).length, seen = cs.filter(c => fs[c.id]).length;
+      return `<button class="deck ${started.includes(n) ? 'on' : ''}" data-act="openDeck" data-sys="${esc(n)}"><span class="demo">${SYS_EMO[n] || '📘'}</span><b>${esc(n)}</b><span class="small muted">${demoTotal(n)} cards${seen ? ' · ' + m + ' mastered' : ''}</span><span class="dklock">${LOCK_SVG} ${cs.length} free cards · full deck with tutoring</span>${seen ? `<i class="pbar"><i style="width:${Math.round(m / cs.length * 100)}%"></i></i>` : ''}</button>`; }).join('')}</div></div>`;
+};
+const _flashHtmlDemo = flashHtml;
+flashHtml = function (d){
+  let h = _flashHtmlDemo(d);
+  if (!isDemoMode()) return h;
+  h = h.replace(/<a href="[^"]*" target="_blank" rel="noopener">(<img class="akimg"[^>]*>)<\/a>/g, '$1');
+  if ((S.fcFilt || 'all') === 'deck' && S.deckOpen && ANKI && ANKI.demo) {
+    const n = S.deckOpen, all = demoTotal(n), free = (decksFor()[n] || []).length;
+    h += `<div class="lkbanner deckend"><span class="lkic">${LOCK_SVG}</span><div><b>${free} of ${all} ${esc(n)} cards are free in this demo</b><div class="small">The full deck comes with tutoring.</div></div></div>`;
+  }
+  return h;
+};
+const _itemHtmlDemo = itemHtml;
+itemHtml = function (x, opt, showDate){
+  let h = _itemHtmlDemo(x, opt, showDate);
+  return isDemoMode() ? h.replace(/<div class="reslinks deckl">[\s\S]*?<\/div>/, '') : h;
+};
+
+/* ---------- Book a session / Ask Dr. Karim → WhatsApp ---------- */
+const _bookHtmlDemo = bookHtml;
+bookHtml = function (d){
+  if (!isDemoMode()) return _bookHtmlDemo(d);
+  return `<div class="card"><h2>📅 Book a session</h2><p class="muted" style="margin:6px 0 14px">In a real plan, students pick a free time here and it lands in their plan and calendar. For now, message Dr. Karim to book.</p>
+    <button class="btn lkwa" data-act="demoWaBook">${WA_SVG} Book on WhatsApp</button></div>`;
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act="demoWaBook"]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation(); waTo('Hi Dr. Karim, I saw the planner demo and I\'d like to book a session.');
+}, true);
+document.addEventListener('submit', e => {
+  if (!isDemoMode() || !e.target || e.target.id !== 'problemForm') return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const t = (e.target.querySelector('[name=text]') || {}).value || '', sys = (e.target.querySelector('[name=system]') || {}).value || '';
+  waTo('Hi Dr. Karim' + (sys ? ' (' + sys + ')' : '') + ': ' + (t.trim() || 'I have a question.'));
+}, true);
+
+const _renderStudentDemo = renderStudent;
+renderStudent = function (){
+  if (isDemoMode()) demoReset();
+  _renderStudentDemo();
+  if (isDemoMode() && !document.querySelector('.demobar')) {
+    const m = document.querySelector('.main'); if (m) m.insertAdjacentHTML('afterbegin', '<div class="demobar">👀 <b>Demo plan</b> — click around freely; nothing you change is saved.</div>');
+  }
+};
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+.demobar{margin:0 0 14px;padding:9px 14px;border-radius:12px;background:linear-gradient(90deg,#eef2ff,#f5f3ff);border:1px solid #dfe3ff;color:#3730a3;font-size:13.5px}
+.lkbanner{display:flex;align-items:center;gap:12px;margin-top:14px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#fffaf0,#fff4e0);border:1px solid #f6dfb4;color:#7a4b00}
+.lkbanner .small{color:#8a6420}.lkbanner>div{flex:1}
+.lkbanner.deckend{margin:0 0 14px}
+.lkic{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid #f1d9a8;color:#b7791f;flex:none}
+.btn.lkwa{background:#25d366;color:#fff;border:0;display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap}
+.lkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:14px}
+.lksys{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--sh)}
+.lksys .rch{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lkrow{display:flex;gap:12px;align-items:center;padding:9px 6px;border-top:1px solid var(--line);cursor:default;user-select:none}
+.lkthumb{position:relative;flex:none;width:78px;height:52px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#dbe4ff,#eef2ff);display:flex;flex-direction:column;gap:5px;padding:9px 10px}
+.lkthumb.vid{background:linear-gradient(135deg,#1e293b,#475569)}
+.lkthumb i{display:block;height:5px;border-radius:3px;background:rgba(59,91,219,.45);filter:blur(1.6px)}
+.lkthumb i:nth-child(2){width:70%}.lkthumb i:nth-child(3){width:45%}
+.lkthumb.vid i{background:rgba(255,255,255,.5)}
+.lkpad{position:absolute;inset:0;display:grid;place-items:center;backdrop-filter:blur(2px);background:rgba(255,255,255,.25);color:#1e293b}
+.lkthumb.vid .lkpad{color:#fff;background:rgba(0,0,0,.15)}
+.lktag{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:11.5px;font-weight:700;color:#b7791f}
+.lktag svg{width:12px;height:12px}
+.reschip.lkchip{cursor:default;opacity:.85;display:inline-flex;align-items:center;gap:6px}
+.reschip.lkchip svg{width:13px;height:13px;color:#b7791f}
+.dklock{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-weight:700;color:#b7791f;line-height:1.3;text-align:left}
+.dklock svg{width:12px;height:12px;flex:none}
 </style>`);
 
 </script>
