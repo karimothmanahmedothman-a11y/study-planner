@@ -1024,6 +1024,73 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 @media (max-width:860px){#waFab{bottom:82px;right:14px;padding:13px}#waFab span{display:none}}
 </style>`);
 
+
+/* =====================================================================
+   Real Match Guy Anki decks (Step 1, 19 systems) — loaded from /decks/step1.json,
+   images in /decks/img/. Replaces the hand-written starter decks.
+   ===================================================================== */
+const ANKI_BASE = '/decks/';
+let ANKI = null;
+const _starterStep1 = DECKS.step1;
+DECKS.step1 = {};
+function ankiLoad(){
+  if (ankiLoad.p) return ankiLoad.p;
+  ankiLoad.p = fetch(ANKI_BASE + 'step1.json').then(r => r.json()).then(j => {
+    ANKI = j; DECKS.step1 = j.step1;
+    if (S.mode !== 'admin' && S.data) { if (S.deckOpen) startDeck(S.deckOpen); renderStudent(); }
+  }).catch(() => { DECKS.step1 = _starterStep1; ankiLoad.p = null; if (S.mode !== 'admin' && S.data) renderStudent(); });
+  return ankiLoad.p;
+}
+ankiLoad();
+deckCards = function (sys){
+  return (decksFor()[sys] || []).map(c => Array.isArray(c)
+    ? {id: hash('deck|' + sys + '|' + c[0]), front: c[0], back: c[1], src: 'deck', tag: sys + ' deck', kind: 'deck'}
+    : {id: hash('anki|' + sys + '|' + c.f), front: c.f, back: c.a + (c.x ? '\n' + c.x : ''), ans: c.a, expl: c.x, imgs: (c.fi || []).concat(c.bi || []), src: 'deck', tag: sys + ' deck', kind: 'anki', sys});
+};
+function ankiFind(id){
+  for (const s of Object.keys(decksFor())) { const c = deckCards(s).find(x => x.id === id); if (c) return c; }
+  return null;
+}
+function ankiExpl(t){
+  return String(t || '').split('\n').filter(Boolean).map(l => {
+    const b = /^[•·]\s*/.test(l); l = l.replace(/^[•·]\s*/, '');
+    let e = esc(l).replace(/^([A-Z][^:]{2,40}):\s/, '<b>$1:</b> ');
+    return b ? `<li>${e}</li>` : `<p>${e}</p>`;
+  }).join('').replace(/(<li>.*?<\/li>)+/g, m => `<ul>${m}</ul>`);
+}
+function ankiCardHtml(c){
+  const flip = !!S.fcFlip;
+  return `<div class="akc">
+    <div class="akq ${flip ? '' : 'tap'}" ${flip ? '' : 'data-act="fcFlip"'}><span class="aktag">${SYS_EMO[c.sys] || '🃏'} ${esc(c.sys)} deck</span><div class="akqt">${esc(c.front)}</div>${flip ? '' : '<span class="fc-hint">Tap to show the answer</span>'}</div>
+    ${flip ? `<div class="aka"><div class="aklab">Answer</div><div class="akans">${esc(c.ans)}</div>${c.expl ? `<div class="akx">${ankiExpl(c.expl)}</div>` : ''}${(c.imgs || []).map(h => `<a href="${ANKI_BASE}img/${h}.webp" target="_blank" rel="noopener"><img class="akimg" loading="lazy" src="${ANKI_BASE}img/${h}.webp" alt=""></a>`).join('')}</div>` : ''}
+  </div>`;
+}
+const _flashHtml8 = flashHtml;
+flashHtml = function (d){
+  let h = _flashHtml8(d);
+  if ((S.fcFilt || 'all') === 'deck' && !ANKI && !Object.keys(decksFor()).length) {
+    return h.replace(/<div class="card"><h3>🃏 Ready-made decks<\/h3><div class="empty">[^<]*<\/div><\/div>/, '<div class="card"><h3>🃏 Ready-made decks</h3><div class="empty">Loading Dr. Karim\'s decks…</div></div>');
+  }
+  h = h.replace(/(\d+ decks · \d+ cards) from Dr\. Karim/, '$1 · Dr. Karim\'s Anki').replace(/The highest-yield facts per system\. Do a deck before that system's questions/, 'Dr. Karim\'s Anki decks: a short case, the answer, and the high-yield explanation. Do a system\'s deck before its questions');
+  const id = (S.fcQueue || [])[0]; if (!id) return h;
+  const c = ankiFind(id); if (!c) return h;
+  const a = h.indexOf('<div class="fc '); if (a < 0) return h;
+  let b = h.indexOf('<div class="fcbtns">', a); if (b < 0) b = h.indexOf('<button class="btn primary" style="width:100%', a); if (b < 0) return h;
+  return h.slice(0, a) + ankiCardHtml(c) + h.slice(b);
+};
+document.head.insertAdjacentHTML('beforeend', `<style>
+.akc{display:grid;gap:12px;margin:6px 0 14px}
+.akq{position:relative;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh-lg);padding:40px 24px 26px;font-size:17px;font-weight:600;line-height:1.5;min-height:150px}
+.akq.tap{cursor:pointer;padding-bottom:44px}
+.aktag{position:absolute;top:14px;left:18px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.aka{background:linear-gradient(180deg,#f5f7ff,#fff);border:1px solid #dbe2ff;border-radius:20px;padding:18px 22px;animation:akin .25s ease}
+@keyframes akin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.aklab{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.akans{font-size:19px;font-weight:800;color:#2f4fd6;margin:4px 0 10px}
+.akx{font-size:14.5px;line-height:1.55;color:var(--ink)}.akx p{margin:0 0 6px}.akx ul{margin:0 0 8px;padding-left:20px}.akx li{margin:2px 0}
+.akimg{display:block;max-width:100%;max-height:420px;margin:12px auto 0;border-radius:12px;border:1px solid var(--line)}
+</style>`);
+
 </script>
 </body>
 </html>
